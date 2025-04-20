@@ -125,7 +125,9 @@ For example, you may consider going to a new directory, unzipping your submissio
 ```
 mkdir -p output
 docker build -t cse517-proj/demo -f Dockerfile .
-docker run --rm -v $PWD/src:/job/src -v $PWD/work:/job/work -v <path_to_test_data>:/job/data -v $PWD/output:/job/output cse517-proj/demo bash /job/src/predict.sh /job/data/input.txt /job/output/pred.txt
+
+PATH_TO_TEST_DATA=$PWD/example
+docker run --rm -v $PWD/src:/job/src -v $PWD/work:/job/work -v ${PATH_TO_TEST_DATA}:/job/data -v $PWD/output:/job/output cse517-proj/demo bash /job/src/predict.sh /job/data/input.txt /job/output/pred.txt
 ```
 
 If you are curious what these flags in `docker run` mean:
