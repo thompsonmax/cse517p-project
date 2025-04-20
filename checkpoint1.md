@@ -4,7 +4,7 @@
 
 At the time of writing, we plan to use the "common corpus" dataset [0] hosted on HuggingFace. This is a very large dataset (2 trillion tokens) focused on permissively licensed content with documented provenance. The goal of the dataset curators is to provide a high-quality and ethically source dataset. We very likely will not use all of the text in the dataset and will perform stratified sampling per language to try to get good coverage over many different languages. This dataset has over 1 billion tokens each for over 30 languages.
 
-We will download the data directly from the HuggingFace datasets website [0]. The site allows for downloading a subset of the data at once. We will make use of this functionality to experiment with a subset of the data and then scale up once we achieve good results with our chosen model.
+We will download the data directly from the HuggingFace datasets website [0]. The site allows for downloading a subset of the data at once. We will make use of this functionality to experiment with a subset of the data and then scale up once we achieve good results with our chosen model. The data can be downloaded in Parquet format, which we can load directly into Pandas or Google BigQuery for data exploration and refinement.
 
 If this dataset is insufficient to cover all the languages we want to support, we may explore mixing in data from these additional sources:
 
@@ -32,7 +32,7 @@ We may consider exploring UTF-8 byte level encoding over directly encoding the u
 
 #### Input
 
-The in
+On top of the conversion to unicode code points above, we will need to additionally define how these code point sequences get encoded as input into the model. 
 
 #### Output
 
