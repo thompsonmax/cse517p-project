@@ -20,8 +20,8 @@ If this dataset is insufficient to cover all the languages we want to support, w
 
 ### Model
 
-We plan to use a Transformer-based model architecture, which currently is what is commonly used to achiev state of the art performance along the Pareto frontier. Particularly we will evaluate a few state of the art approaches such as Transformer-XL and LongFormer. We plan to train and run the model within pytorch.
+We plan to use a Transformer-based model architecture, which currently is what is commonly used to achieve state of the art performance along the Pareto frontier. Particularly we will evaluate a few state of the art approaches such as Transformer-XL and LongFormer. We plan to train and run the model within pytorch.
 
-### Character
+### Input and Output formats
 
 Since the input characters are UTF-8 encoded, we will need to carefully consider how we craft the input and output of the model.
