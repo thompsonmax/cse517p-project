@@ -42,14 +42,14 @@ In this case, your program must
 Let's walk through how to use the example program. First we will train the model, telling the program to save intermediate results in the directory `work`:
 
 ```
-python src/myprogram.py train --work_dir work
+python3 src/myprogram.py train --work_dir work
 ```
 
 Because this model doesn't actually require training, we simply saved a fake checkpoint to `work/model.checkpoint`.
 Next, we will generate predictions for the example data in `example/input.txt` and save it in `pred.txt`:
 
 ```
-python src/myprogram.py test --work_dir work --test_data example/input.txt --test_output pred.txt
+python3 src/myprogram.py test --work_dir work --test_data example/input.txt --test_output pred.txt
 ```
 
 ## Evaluating your predictions
@@ -62,7 +62,7 @@ For simplicity, we will check caseless matches (e.g. it doesn't matter if you gu
 Let's see what the random guessing program gets:
 
 ```
-python grader/grade.py example/pred.txt example/answer.txt --verbose
+python3 grader/grade.py example/pred.txt example/answer.txt --verbose
 ```
 
 You should see a detailed answer, as well as a success rate.

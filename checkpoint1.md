@@ -24,4 +24,4 @@ We plan to use a Transformer-based model architecture, which currently is what i
 
 ### Input and Output formats
 
-Since the input characters are UTF-8 encoded, we will need to carefully consider how we craft the input and output of the model.
+Since the input characters are UTF-8 encoded, we will need to carefully consider how we craft the input and output of the model. UTF-8 presents some additional difficulty as characters are encoded using variable length sequences of 1-4 bytes per character. Instead of modeling 
