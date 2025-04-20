@@ -22,6 +22,18 @@ If this dataset is insufficient to cover all the languages we want to support, w
 
 We plan to use a Transformer-based model architecture, which currently is what is commonly used to achieve state of the art performance along the Pareto frontier. Particularly we will evaluate a few state of the art approaches such as Transformer-XL and LongFormer. We plan to train and run the model within pytorch.
 
-### Input and Output formats
+### Encoding
 
-Since the input characters are UTF-8 encoded, we will need to carefully consider how we craft the input and output of the model. UTF-8 presents some additional difficulty as characters are encoded using variable length sequences of 1-4 bytes per character. Instead of modeling 
+Since the input characters are UTF-8 encoded, we will need to carefully consider how we craft the input and output of the model. UTF-8 presents some additional difficulty as characters are encoded using variable length sequences of 1-4 bytes per character. We will transform the UTF-8 characters into fixed size unicode code points as the input to the model. Similarly, the output encoding of the model will a unicode code point.
+
+Since the total number of code points in unicode is vast, we will focus on supporting only the Basic Multilingual Plane (BMP) of code points that range from U+0000 to U+FFFF (65535 code points in total). This will allow us to support the basic character set required to support almost every langauage without making the vector encodings for each character too huge and thus compromising the speed and efficiency of the model. For rare characters that we encounter outside of the BMP, we will replace them with an '<UNK>' character in our encoding.
+
+We may consider exploring UTF-8 byte level encoding over directly encoding the unicode code points if that potentially can increase performance. However, that introduces additional complexity on processing the input and running inference. Particular with inference, we would need to be able to detect when we need to run the model again to generate additional UTF-8 characters to produce a valid code point. So for now we will stick with directly encoding the unicode code points.
+
+#### Input
+
+The in
+
+#### Output
+
+We need to get the top 3 characters from the output of the model when running predictions. We will first run our softmax layer on the output vectors to get a probability distribution over all characters. We will then use `pytorch.argsort` to get the indices corresponding to the top 3 probability values in the vector.
