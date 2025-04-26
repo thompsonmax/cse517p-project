@@ -20,8 +20,8 @@ class DataImporter:
 
     @classmethod
     def divide_corpus_into_datasets(self, common_corpus, percent_dev=0.2, random_state=42):
-        dev_dataset = common_corpus.sample(frac=percent_dev, random_state=random_state)
-        train_dataset = common_corpus.drop(dev_dataset.index)
+        dev_dataset = common_corpus.sample(frac=percent_dev, random_state=random_state).reset_index(drop=True)
+        train_dataset = common_corpus.drop(dev_dataset.index).reset_index(drop=True)
         return train_dataset, dev_dataset
     
 # smaller dataset for testing
