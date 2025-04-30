@@ -7,3 +7,4 @@ VOLUME ["/job/data", "/job/src", "/job/work", "/job/output"]
 # RUN pip install tqdm
 
 RUN pip3 install datasets
+RUN pip3 install scikit-learn
