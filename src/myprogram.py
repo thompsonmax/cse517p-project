@@ -3,6 +3,10 @@ import os
 import string
 import random
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
+import pandas as pd
+from data_importer import DataImporter
+import dataloader
+from model import FFNN
 
 
 class MyModel:
@@ -14,7 +18,12 @@ class MyModel:
     def load_training_data(cls):
         # your code here
         # this particular model doesn't train
-        return []
+        common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
+        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
+        print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
+        train_dataset, _ = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
+
+        return train_dataset['text'].tolist()
 
     @classmethod
     def load_test_data(cls, fname):
@@ -33,8 +42,10 @@ class MyModel:
                 f.write('{}\n'.format(p))
 
     def run_train(self, data, work_dir):
-        # your code here
-        pass
+        # Create embeddings based on text
+        # Create DataLoader to feed in training data
+        dl = dataloader.create(data)
+        # model = 
 
     def run_pred(self, data):
         # your code here
