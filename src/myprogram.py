@@ -2,6 +2,7 @@
 import os
 import string
 import random
+import torch.nn as nn
 import torch
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import pandas as pd
@@ -11,7 +12,7 @@ from model import FFNN
 from train import train
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
-DEVICE = 'cpu'
+DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
 class MyModel:
     """
@@ -48,8 +49,8 @@ class MyModel:
         train_dataset = train_dataset['text'].tolist()
         dev_dataset = dev_dataset['text'].tolist()
 
-        self.X_train, self.y_train = dataloader.create(train_dataset)
-        self.X_dev, self.y_dev = dataloader.create(dev_dataset)
+        self.X_train, self.y_train = dataloader.create(train_dataset, device=DEVICE)
+        self.X_dev, self.y_dev = dataloader.create(dev_dataset, device=DEVICE)
         os.mkdir(train_dir)
         os.mkdir(dev_dir)
         torch.save(self.X_train, X_train_path)
@@ -105,7 +106,7 @@ class MyModel:
     def save(self, work_dir):
         # your code here
         model_path = os.path.join(work_dir, 'model.checkpoint')
-        torch.save(model.state_dict(), model_path)
+        torch.save(model.model.state_dict(), model_path)
 
     @classmethod
     def load(cls, work_dir):

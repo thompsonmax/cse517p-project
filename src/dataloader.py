@@ -4,9 +4,7 @@ import os
 import torch
 import random
 
-random.seed(42)
-
-def create(data: List[str]) -> tuple[torch.Tensor, torch.Tensor]:
+def create(data: List[str], device='cpu') -> tuple[torch.Tensor, torch.Tensor]:
     print(f"Preprocessing data of length {len(data)}...")
     st_model = SentenceTransformer("all-mpnet-base-v2")
     print("Sampling subsequences...")
@@ -19,7 +17,7 @@ def create(data: List[str]) -> tuple[torch.Tensor, torch.Tensor]:
 
 def create_test(data: List[str]) -> torch.Tensor:
     st_model = SentenceTransformer("all-mpnet-base-v2")
-    return get_st_embeddings(data, st_model)
+    return get_st_embeddings(data, st_model, device=device)
 
 
 def sample_sequences(data: List[str]):
