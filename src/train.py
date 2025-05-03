@@ -1,11 +1,12 @@
 import torch
+from typing import List
 import torch.nn as nn
 from torch.utils.data import DataLoader
+import dataloader
 
 # def evaluate(
 #     model: nn.Module,
-#     X_dev: torch.Tensor,
-#     y_dev: torch.Tensor,
+#     dev_dataloader: DataLoader,
 #     eval_batch_size: int = 128,
 #     device: str = "cpu",
 # ) -> Dict[str, float]:
@@ -24,10 +25,7 @@ from torch.utils.data import DataLoader
 #     """
 
 #     # Create a DataLoader for the validation data
-#     dev_dataloader = create_dataloader(X_dev, y_dev, batch_size=eval_batch_size, shuffle=False) # Note that we don't shuffle the data for evaluation.
-
-#     # A flag to check if the classification task is binary
-#     is_binary_cls = y_dev.max() == 1
+#     #dev_dataloader = create_dataloader(X_dev, y_dev, batch_size=eval_batch_size, shuffle=False) # Note that we don't shuffle the data for evaluation.
 
 #     # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
 #     model.eval()
@@ -36,7 +34,7 @@ from torch.utils.data import DataLoader
 #     model.to(device)
 
 #     # Define the loss function. Remember to use BCEWithLogitsLoss for binary classification and CrossEntropyLoss for multiclass classification
-#     loss_fn = nn.BCEWithLogitsLoss() if is_binary_cls else nn.CrossEntropyLoss()
+#     loss_fn = nn.CrossEntropyLoss()
 
 #     val_loss = 0.0
 #     preds = [] # List to store the predictions. This will be used to compute the accuracy, precision, and recall scores.
@@ -91,10 +89,13 @@ from torch.utils.data import DataLoader
 
 def train(
     model: nn.Module,
-    train_dataloader: DataLoader,
-    # dev_dataloader: DataLoader,
+    X_train: List[str],
+    y_train: List[str],
+    X_dev: List[str],
+    y_dev: List[str],
+    work_dir: str,
     lr: float = 1e-3,
-    # eval_batch_size: int = 128,
+    #eval_batch_size: int = 128,
     n_epochs: int = 10,
     device: str = "cpu",
     verbose: bool = True,
@@ -114,6 +115,9 @@ def train(
     # - dev_metrics: List of validation metrics (loss, accuracy, precision, recall, f1) for each epoch
     """
 
+    train_cache_path = work_dir + "/train_embeddings"
+    train_dataloader = dataloader.create(X_train, y_train, cachePath=train_cache_path, shuffle=True)
+
     # Transfer the model to device
     model.to(device)
 
@@ -124,6 +128,7 @@ def train(
     train_losses = [] # List to store the training losses
     # dev_metrics = [] # List to store the validation metrics
 
+    print("Running training...")
     for epoch in range(n_epochs): # Iterate over the epochs
 
         model.train() # Set the model to training mode
@@ -134,8 +139,6 @@ def train(
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
             # Perform a forward pass through the network and compute loss
             y_batch_preds = model(X_batch).squeeze(-1)
-            print(y_batch_preds)
-            print(y_batch)
             batch_loss = loss_fn(y_batch_preds, y_batch)
 
             batch_loss.backward()

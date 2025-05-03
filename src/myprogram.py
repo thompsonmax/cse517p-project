@@ -33,8 +33,11 @@ class MyModel:
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
         train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
 
-        self.train_dataset = train_dataset['text'].tolist()
-        self.dev_dataset = dev_dataset['text'].tolist()
+        train_dataset = train_dataset['text'].tolist()
+        dev_dataset = dev_dataset['text'].tolist()
+
+        self.X_train, self.y_train = dataloader.sample_sequences(train_dataset)
+        self.X_dev, self.y_dev = dataloader.sample_sequences(dev_dataset)
 
     @classmethod
     def load_test_data(cls, fname):
@@ -55,21 +58,17 @@ class MyModel:
     def run_train(self, work_dir):
         # your code here
         # Create embeddings based on text
-        # Create DataLoader to feed in training data
-        print("Creating train_dataloader")
-        train_cache_path = work_dir + "/train_embeddings"
-        train_dataloader = dataloader.create(self.train_dataset, train_cache_path)
-        print("Creating dev dataloader...")
-        # dev_cache_path = work_dir + "/dev_embeddings.pt"
-        # dev_dataloader = dataloader.create(self.dev_dataset, dev_cache_path)
-        print("Running training...")
         train_losses = train(
             model=self.model,
-            train_dataloader=train_dataloader,
+            X_train=self.X_train,
+            y_train=self.y_train,
+            X_dev=self.X_dev,
+            y_dev=self.y_dev,
+            work_dir=work_dir,
             lr=1e-3,
             n_epochs=10,
             device=DEVICE,
-            verbose=True
+            verbose=True,
         )
 
         print("Final train loss: %.4f", train_losses[-1])
