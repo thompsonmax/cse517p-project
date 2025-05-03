@@ -27,14 +27,18 @@ class MyModel:
 
     @classmethod
     def load_training_data(self, work_dir):
-        # your code here
-        train_cache_path = work_dir + "/train_embeddings"
-        dev_cache_path = work_dir + "/train_embeddings"
-        if os.path.isdir(work_dir + "/train_embeddings"):
-            train_dataset = []
-            dev_dataset = []
-            self.X_train, self.y_train = dataloader.create(train_dataset, train_cache_path)
-            self.X_dev, self.y_dev = dataloader.create(dev_dataset, dev_cache_path)
+        train_dir = work_dir + "/train_embeddings"
+        dev_dir = work_dir + "/dev_embeddings"
+        X_train_path = work_dir + "/train_embeddings/x_embeddings.pt"
+        y_train_path = work_dir + "/train_embeddings/y_embeddings.pt"
+        X_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
+        y_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
+
+        if os.path.isdir(train_dir) and os.path.isdir(dev_dir):
+            self.X_train = torch.load(X_train_path)
+            self.y_train = torch.load(y_train_path)
+            self.X_dev = torch.load(X_dev_path)
+            self.y_dev = torch.load(y_dev_path)
             return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
@@ -44,8 +48,14 @@ class MyModel:
         train_dataset = train_dataset['text'].tolist()
         dev_dataset = dev_dataset['text'].tolist()
 
-        self.X_train, self.y_train = dataloader.create(train_dataset, train_cache_path)
-        self.X_dev, self.y_dev = dataloader.create(dev_dataset, dev_cache_path)
+        self.X_train, self.y_train = dataloader.create(train_dataset)
+        self.X_dev, self.y_dev = dataloader.create(dev_dataset)
+        os.mkdir(train_dir)
+        os.mkdir(dev_dir)
+        torch.save(self.X_train, X_train_path)
+        torch.save(self.y_train, y_train_path)
+        torch.save(self.X_dev, X_dev_path)
+        torch.save(self.y_dev, y_dev_path)
 
     @classmethod
     def load_test_data(cls, fname):
@@ -85,7 +95,7 @@ class MyModel:
     def run_pred(self, data):
         # your code here
         # test_cache_path = 
-        X_test, y_test  = dataloader.create(self.train_dataset, "")
+        X_test, y_test  = dataloader.create(self.train_dataset)
         preds = []
         for inp in data:
             # this model just predicts a random character each time

@@ -6,20 +6,11 @@ import random
 
 random.seed(42)
 
-def create(data: List[str], cachePath: str) -> tuple[torch.Tensor, torch.Tensor]:
+def create(data: List[str]) -> tuple[torch.Tensor, torch.Tensor]:
     st_model = SentenceTransformer("all-mpnet-base-v2")
     x_text, y_code_point = sample_sequences(data)
-    train_cache_path = cachePath + "/x_embeddings.pt"
-    dev_cache_path = cachePath + "/y_embeddings.pt"
-    if os.path.isdir(cachePath):
-        X_embedding = torch.load(train_cache_path)
-        y_labels = torch.load(dev_cache_path)
-    else:
-        X_embedding = get_st_embeddings(x_text, st_model)
-        y_labels = torch.tensor(y_code_point)
-        os.mkdir(cachePath)
-        torch.save(X_embedding, train_cache_path)
-        torch.save(y_labels, dev_cache_path)
+    X_embedding = get_st_embeddings(x_text, st_model)
+    y_labels = torch.tensor(y_code_point)
 
     return (X_embedding, y_labels)
 
