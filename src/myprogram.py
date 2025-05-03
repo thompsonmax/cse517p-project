@@ -95,25 +95,24 @@ class MyModel:
     def run_pred(self, data):
         # your code here
         # test_cache_path = 
-        X_test, y_test  = dataloader.create(self.train_dataset)
+        X_test = dataloader.create_test(self.data)
         preds = []
         for inp in data:
             # this model just predicts a random character each time
-            top_guesses = [random.choice(all_chars) for _ in range(3)]
             preds.append(''.join(top_guesses))
         return preds
 
     def save(self, work_dir):
         # your code here
-        with open(os.path.join(work_dir, 'model.checkpoint'), 'wt') as f:
-            torch.save(self.model.state_dict, f)
+        model_path = os.path.join(work_dir, 'model.checkpoint')
+        torch.save(model.state_dict(), model_path)
 
     @classmethod
     def load(cls, work_dir):
         # your code here
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
-        with open(os.path.join(work_dir, 'model.checkpoint')) as f:
-            saved_model_state_dict = torch.load(f)
+        model_path = os.path.join(work_dir, 'model.checkpoint')
+        saved_model_state_dict = torch.load(model_path)
         my_model = MyModel()
         my_model.model.load_state_dict(saved_model_state_dict)
 

@@ -7,12 +7,20 @@ import random
 random.seed(42)
 
 def create(data: List[str]) -> tuple[torch.Tensor, torch.Tensor]:
+    print(f"Preprocessing data of length {len(data)}...")
     st_model = SentenceTransformer("all-mpnet-base-v2")
+    print("Sampling subsequences...")
     x_text, y_code_point = sample_sequences(data)
+    print("Computing embeddings...")
     X_embedding = get_st_embeddings(x_text, st_model)
     y_labels = torch.tensor(y_code_point)
 
     return (X_embedding, y_labels)
+
+def create_test(data: List[str]) -> torch.Tensor:
+    st_model = SentenceTransformer("all-mpnet-base-v2")
+    return get_st_embeddings(data, st_model)
+
 
 def sample_sequences(data: List[str]):
     x_text = []
