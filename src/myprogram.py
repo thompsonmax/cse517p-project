@@ -11,6 +11,7 @@ import dataloader
 from model import FFNN
 from train import train
 from predict import predict
+from pprint import pprint
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -50,10 +51,12 @@ class MyModel:
         train_dataset = train_dataset['text'].tolist()
         dev_dataset = dev_dataset['text'].tolist()
 
+        print('preparing training dataset')
         self.X_train, self.y_train = dataloader.create(train_dataset, device=DEVICE)
+        print('preparing dev dataset')
         self.X_dev, self.y_dev = dataloader.create(dev_dataset, device=DEVICE)
-        os.mkdir(train_dir)
-        os.mkdir(dev_dir)
+        os.mkdirs(train_dir, exist_ok=True)
+        os.mkdirs(dev_dir, exist_ok=True)
         torch.save(self.X_train, X_train_path)
         torch.save(self.y_train, y_train_path)
         torch.save(self.X_dev, X_dev_path)
@@ -78,20 +81,21 @@ class MyModel:
     def run_train(self, work_dir):
         # your code here
         # Create embeddings based on text
-        train_losses = train(
+        train_losses, final_dev_metrics = train(
             model=self.model,
             X_train=self.X_train,
             y_train=self.y_train,
             X_dev=self.X_dev,
             y_dev=self.y_dev,
-            work_dir=work_dir,
             lr=1e-3,
             n_epochs=10,
             device=DEVICE,
             verbose=True,
         )
 
-        print("Final train loss: %.4f", train_losses[-1])
+        print("Final train loss: %.4f" % (train_losses[-1]))
+        print("Final dev metrics:")
+        pprint(final_dev_metrics)
         
 
     def run_pred(self, data):
