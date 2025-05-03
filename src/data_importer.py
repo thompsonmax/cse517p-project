@@ -66,23 +66,23 @@ class DataImporter:
             random_state=random_state)
         return train_dataset, dev_dataset
     
-# if __name__ == "__main__":
-#     # smaller dataset for testing
-#     common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-#     print(f'\noriginal corpus size: {common_corpus.shape}\n')
-#     DataImporter.describe_dataset(common_corpus)
+if __name__ == "__main__":
+    # smaller dataset for testing
+    common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
+    print(f'\noriginal corpus size: {common_corpus.shape}\n')
+    DataImporter.describe_dataset(common_corpus)
 
-#     print(f'=== with stratifying ===')
-#     common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
-#     print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-#     train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
-#     print(f'training dataset size: {train_dataset.shape}')
-#     print(f'dev dataset size: {dev_dataset.shape}')
-#     print()
+    print(f'=== with stratifying ===')
+    common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
+    print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
+    train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
+    print(f'training dataset size: {train_dataset.shape}')
+    print(f'dev dataset size: {dev_dataset.shape}')
+    print()
 
-#     print(f'=== without stratifying ===')
-#     common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=1)
-#     print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-#     train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified, stratify=False)
-#     print(f'training dataset size without stratifying: {train_dataset.shape}')
-#     print(f'dev dataset size without stratifying: {dev_dataset.shape}')
+    print(f'=== without stratifying ===')
+    common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=1)
+    print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
+    train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified, stratify=False)
+    print(f'training dataset size without stratifying: {train_dataset.shape}')
+    print(f'dev dataset size without stratifying: {dev_dataset.shape}')

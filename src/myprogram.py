@@ -26,14 +26,15 @@ class MyModel:
         )
 
     @classmethod
-    def load_training_data(cls):
+    def load_training_data(self):
         # your code here
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-        train_dataset, _ = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
+        train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
 
-        return train_dataset['text'].tolist()
+        self.train_dataset = train_dataset['text'].tolist()
+        self.dev_dataset = dev_dataset['text'].tolist()
 
     @classmethod
     def load_test_data(cls, fname):
@@ -51,12 +52,16 @@ class MyModel:
             for p in preds:
                 f.write('{}\n'.format(p))
 
-    def run_train(self, data, work_dir):
+    def run_train(self, work_dir):
         # your code here
         # Create embeddings based on text
         # Create DataLoader to feed in training data
         print("Creating train_dataloader")
-        train_dataloader = dataloader.create(data)
+        train_cache_path = work_dir + "/train_embeddings.pt"
+        train_dataloader = dataloader.create(self.train_dataset, train_cache_path)
+        print("Creating dev dataloader...")
+        # dev_cache_path = work_dir + "/dev_embeddings.pt"
+        # dev_dataloader = dataloader.create(self.dev_dataset, dev_cache_path)
         print("Running training...")
         train_losses = train(
             model=self.model,
@@ -112,9 +117,9 @@ if __name__ == '__main__':
         print('Instatiating model')
         model = MyModel()
         print('Loading training data')
-        train_data = MyModel.load_training_data()
+        MyModel.load_training_data()
         print('Training')
-        model.run_train(train_data, args.work_dir)
+        model.run_train(args.work_dir)
         print('Saving model')
         model.save(args.work_dir)
     elif args.mode == 'test':

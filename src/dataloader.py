@@ -1,20 +1,26 @@
 from torch.utils.data import TensorDataset, DataLoader
 from typing import List
-# from nltk.tokenize import word_tokenize
 from sentence_transformers import SentenceTransformer
-# import nltk
+import os
 import torch
-import numpy as np
 import random
 
-def create(data: List[str]) -> DataLoader:
+random.seed(42)
+
+def create(data: List[str], cachePath: str) -> DataLoader:
     st_model = SentenceTransformer("all-mpnet-base-v2")
     x_text, y_code_point = sample_sequences(data)
-    X_embedding = get_st_embeddings(x_text, st_model)
-    y_tensor = torch.tensor(y_code_point, dtype=torch.float)
+    if os.path.isdir(cachePath):
+        X_embedding = torch.load(cachePath + "/x_embeddings.pt")
+        y_labels = torch.load(cachePath + "/y_embeddings.pt")
+    else:
+        X_embedding = get_st_embeddings(x_text, st_model)
+        y_labels = torch.tensor(y_code_point, dtype=torch.float)
+        torch.save(X_embedding, cachePath)
+        torch.save(y_labels, y_labels)
 
-    dataset = TensorDataset(X_embedding, y_tensor)
-    return DataLoader(dataset, batch_size=32, shuffle=True)
+        dataset = TensorDataset(X_embedding, y_labels)
+        return DataLoader(dataset, batch_size=32, shuffle=True)
 
 def sample_sequences(data: List[str]):
     x_text = []
@@ -37,7 +43,7 @@ def get_st_embeddings(
     sentences: List[str],
     st_model: SentenceTransformer,
     batch_size: int = 32,
-    device: str = "cpu",
+    device: str = "cpu"
 ):
     """
     Compute the sentence embedding using the Sentence Transformer model.
@@ -54,7 +60,6 @@ def get_st_embeddings(
     st_model.to(device)
     sentence_embeddings = None
 
-    print("Computing ST embeddings...")
     for i in range(0, len(sentences), batch_size):
         batch_sentences = sentences[i : i + batch_size]
         batch_embeddings = st_model.encode(batch_sentences, convert_to_tensor=True)
@@ -65,4 +70,5 @@ def get_st_embeddings(
                 [sentence_embeddings, batch_embeddings], dim=0
             )
     print("Finished computing ST embeddings")
+
     return sentence_embeddings
