@@ -57,7 +57,7 @@ class MyModel:
         # Create embeddings based on text
         # Create DataLoader to feed in training data
         print("Creating train_dataloader")
-        train_cache_path = work_dir + "/train_embeddings.pt"
+        train_cache_path = work_dir + "/train_embeddings"
         train_dataloader = dataloader.create(self.train_dataset, train_cache_path)
         print("Creating dev dataloader...")
         # dev_cache_path = work_dir + "/dev_embeddings.pt"

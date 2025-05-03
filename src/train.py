@@ -134,6 +134,8 @@ def train(
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
             # Perform a forward pass through the network and compute loss
             y_batch_preds = model(X_batch).squeeze(-1)
+            print(y_batch_preds)
+            print(y_batch)
             batch_loss = loss_fn(y_batch_preds, y_batch)
 
             batch_loss.backward()
