@@ -26,8 +26,16 @@ class MyModel:
         )
 
     @classmethod
-    def load_training_data(self):
+    def load_training_data(self, work_dir):
         # your code here
+        train_cache_path = work_dir + "/train_embeddings"
+        dev_cache_path = work_dir + "/train_embeddings"
+        if os.path.isdir(work_dir + "/train_embeddings"):
+            train_dataset = []
+            dev_dataset = []
+            self.X_train, self.y_train = dataloader.create(train_dataset, train_cache_path)
+            self.X_dev, self.y_dev = dataloader.create(dev_dataset, dev_cache_path)
+            return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
@@ -36,8 +44,8 @@ class MyModel:
         train_dataset = train_dataset['text'].tolist()
         dev_dataset = dev_dataset['text'].tolist()
 
-        self.X_train, self.y_train = dataloader.sample_sequences(train_dataset)
-        self.X_dev, self.y_dev = dataloader.sample_sequences(dev_dataset)
+        self.X_train, self.y_train = dataloader.create(train_dataset, train_cache_path)
+        self.X_dev, self.y_dev = dataloader.create(dev_dataset, dev_cache_path)
 
     @classmethod
     def load_test_data(cls, fname):
@@ -76,8 +84,9 @@ class MyModel:
 
     def run_pred(self, data):
         # your code here
+        # test_cache_path = 
+        X_test, y_test  = dataloader.create(self.train_dataset, "")
         preds = []
-        all_chars = string.ascii_letters
         for inp in data:
             # this model just predicts a random character each time
             top_guesses = [random.choice(all_chars) for _ in range(3)]
@@ -116,7 +125,7 @@ if __name__ == '__main__':
         print('Instatiating model')
         model = MyModel()
         print('Loading training data')
-        MyModel.load_training_data()
+        MyModel.load_training_data(args.work_dir)
         print('Training')
         model.run_train(args.work_dir)
         print('Saving model')

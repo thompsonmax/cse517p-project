@@ -44,8 +44,6 @@ class FFNN(nn.Module): # We inherit from nn.Module, which is the base class for 
         Hint: You can call a layer directly with the input to get the output tensor, e.g. self.fc1(x) will return the output tensor after applying the first linear layer.
         """
 
-        logits = None
-
         # YOUR CODE HERE
         x = self.fc1(x)
         x = self.act1(x)

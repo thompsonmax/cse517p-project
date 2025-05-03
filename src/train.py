@@ -1,8 +1,11 @@
 import torch
 from typing import List
 import torch.nn as nn
-from torch.utils.data import DataLoader
 import dataloader
+from torch.utils.data import DataLoader, TensorDataset
+import torch.nn.functional as F
+
+UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 
 # def evaluate(
 #     model: nn.Module,
@@ -89,10 +92,10 @@ import dataloader
 
 def train(
     model: nn.Module,
-    X_train: List[str],
-    y_train: List[str],
-    X_dev: List[str],
-    y_dev: List[str],
+    X_train: torch.Tensor,
+    y_train: torch.Tensor,
+    X_dev: torch.Tensor,
+    y_dev: torch.Tensor,
     work_dir: str,
     lr: float = 1e-3,
     #eval_batch_size: int = 128,
@@ -114,10 +117,6 @@ def train(
     - train_losses: List of training losses for each epoch
     # - dev_metrics: List of validation metrics (loss, accuracy, precision, recall, f1) for each epoch
     """
-
-    train_cache_path = work_dir + "/train_embeddings"
-    train_dataloader = dataloader.create(X_train, y_train, cachePath=train_cache_path, shuffle=True)
-
     # Transfer the model to device
     model.to(device)
 
@@ -131,15 +130,21 @@ def train(
     print("Running training...")
     for epoch in range(n_epochs): # Iterate over the epochs
 
+        train_dataloader = DataLoader(TensorDataset(X_train, y_train), batch_size=32, shuffle=True)
+
         model.train() # Set the model to training mode
         train_epoch_loss = 0.0
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
 
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
+
+            # convert y_batch into a one_hot encoding matrix
+            y_one_hot = F.one_hot(y_batch.long(), num_classes=UNICODE_BMP_MAX_CODE_POINT).float()
             # Perform a forward pass through the network and compute loss
             y_batch_preds = model(X_batch).squeeze(-1)
-            batch_loss = loss_fn(y_batch_preds, y_batch)
+
+            batch_loss = loss_fn(y_batch_preds, y_one_hot)
 
             batch_loss.backward()
             optimizer.step()
@@ -154,5 +159,5 @@ def train(
 
         if verbose:
             # print("Epoch: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"]))
-            print("Epoch: %.d, Train Loss: %.4f", epoch + 1, train_epoch_loss)
+            print("Epoch: %.d, Train Loss: %.4f" % (epoch + 1, train_epoch_loss))
     return train_losses
