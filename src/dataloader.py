@@ -4,6 +4,8 @@ import os
 import torch
 import random
 
+MAX_SAMPLING_ATTEMPTS=5
+
 def create(data: List[str], device='cpu') -> tuple[torch.Tensor, torch.Tensor]:
     print(f"Preprocessing data of length {len(data)}...")
     st_model = SentenceTransformer("all-mpnet-base-v2")
@@ -25,14 +27,21 @@ def sample_sequences(data: List[str]):
     y_code_point = []
 
     for text_seq in data:
-        # Number of characters to select in the subsequence
-        k = random.randint(0, len(text_seq) - 1)
+        # Continue sampling until we find a subsequence that does not end
+        # in a space.
+        for i in range(MAX_SAMPLING_ATTEMPTS):
+            k = random.randint(0, len(text_seq) - 1)
 
-        subsampled_seq = text_seq[:k]
-        last_char_code_point = ord(text_seq[k])
+            subsampled_seq = text_seq[:k]
+            last_char = text_seq[k]
+            if last_char == ' ':
+                print("Found space char, resampling...")
+                continue
+            last_char_code_point = ord(text_seq[k])
 
-        x_text.append(subsampled_seq)
-        y_code_point.append(last_char_code_point)
+            x_text.append(subsampled_seq)
+            y_code_point.append(last_char_code_point)
+            break
     
     return (x_text, y_code_point)
 

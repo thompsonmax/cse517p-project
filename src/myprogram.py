@@ -10,6 +10,7 @@ from data_importer import DataImporter
 import dataloader
 from model import FFNN
 from train import train
+from predict import predict
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -33,7 +34,7 @@ class MyModel:
         X_train_path = work_dir + "/train_embeddings/x_embeddings.pt"
         y_train_path = work_dir + "/train_embeddings/y_embeddings.pt"
         X_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
-        y_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
+        y_dev_path = work_dir + "/dev_embeddings/y_embeddings.pt"
 
         if os.path.isdir(train_dir) and os.path.isdir(dev_dir):
             self.X_train = torch.load(X_train_path)
@@ -96,11 +97,12 @@ class MyModel:
     def run_pred(self, data):
         # your code here
         # test_cache_path = 
-        X_test = dataloader.create_test(self.data)
-        preds = []
-        for inp in data:
-            # this model just predicts a random character each time
-            preds.append(''.join(top_guesses))
+        X_test = dataloader.create_test(data)
+        preds = predict(
+            X_test,
+            self.model,
+            device=DEVICE
+        )
         return preds
 
     def save(self, work_dir):
@@ -116,6 +118,7 @@ class MyModel:
         saved_model_state_dict = torch.load(model_path)
         my_model = MyModel()
         my_model.model.load_state_dict(saved_model_state_dict)
+        return my_model
 
 
 if __name__ == '__main__':

@@ -4,7 +4,7 @@ import torch
 class FFNN(nn.Module): # We inherit from nn.Module, which is the base class for all PyTorch Neural Network modules
 
     def __init__(
-        self, input_dim: int, hidden_dim: int, num_classes: int
+        self, input_dim: int, hidden_dim: int, num_classes: int, num_layers=3
     ):
 
         """
@@ -20,6 +20,7 @@ class FFNN(nn.Module): # We inherit from nn.Module, which is the base class for 
 
         super(FFNN, self).__init__() # Call the base class constructor
 
+        self.num_layers = num_layers
         # Define your network architecture below
 
         self.fc1 = None # First linear layer
@@ -29,7 +30,17 @@ class FFNN(nn.Module): # We inherit from nn.Module, which is the base class for 
         # YOUR CODE HERE
         self.fc1 = nn.Linear(input_dim, hidden_dim)
         self.act1 = nn.ReLU()
-        self.fc2 = nn.Linear(hidden_dim, num_classes)
+        self.fc2 = nn.Linear(hidden_dim, num_classes if num_layers == 1 else hidden_dim)
+
+        if num_layers > 1:
+            self.act2 = nn.ReLU()
+            self.fc3 = nn.Linear(hidden_dim, num_classes if num_layers == 2 else hidden_dim)
+        if num_layers > 2:
+            self.act3 = nn.ReLU()
+            self.fc4 = nn.Linear(hidden_dim, num_classes if num_layers == 3 else hidden_dim)
+        if num_layers > 3:
+            self.act4 = nn.ReLU()
+            self.fc5 = nn.Linear(hidden_dim, num_classes)
 
         self.initialize_weights() # Initialize the weights of the linear layers
 
@@ -48,6 +59,16 @@ class FFNN(nn.Module): # We inherit from nn.Module, which is the base class for 
         x = self.fc1(x)
         x = self.act1(x)
         x = self.fc2(x)
+
+        if self.num_layers > 1:
+            x = self.act2(x)
+            x = self.fc3(x)
+        if self.num_layers > 2:
+            x = self.act3(x)
+            x = self.fc4(x)
+        if self.num_layers > 3:
+            x = self.act4(x)
+            x = self.fc5(x)
 
         return x
 
