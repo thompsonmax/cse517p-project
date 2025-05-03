@@ -10,12 +10,12 @@ def create(data: List[str], device='cpu') -> tuple[torch.Tensor, torch.Tensor]:
     print("Sampling subsequences...")
     x_text, y_code_point = sample_sequences(data)
     print("Computing embeddings...")
-    X_embedding = get_st_embeddings(x_text, st_model)
+    X_embedding = get_st_embeddings(x_text, st_model, device=device)
     y_labels = torch.tensor(y_code_point)
 
     return (X_embedding, y_labels)
 
-def create_test(data: List[str]) -> torch.Tensor:
+def create_test(data: List[str], device='cpu') -> torch.Tensor:
     st_model = SentenceTransformer("all-mpnet-base-v2")
     return get_st_embeddings(data, st_model, device=device)
 
