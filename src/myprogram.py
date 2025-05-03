@@ -2,22 +2,32 @@
 import os
 import string
 import random
+import torch
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 import pandas as pd
 from data_importer import DataImporter
 import dataloader
 from model import FFNN
+from train import train
 
+UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
+DEVICE = 'cpu'
 
 class MyModel:
     """
     This is a starter model to get you started. Feel free to modify this file.
     """
 
+    def __init__(self):
+        self.model = FFNN(
+            input_dim=768,
+            hidden_dim=3*768,
+            num_classes=UNICODE_BMP_MAX_CODE_POINT
+        )
+
     @classmethod
     def load_training_data(cls):
         # your code here
-        # this particular model doesn't train
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
@@ -42,10 +52,23 @@ class MyModel:
                 f.write('{}\n'.format(p))
 
     def run_train(self, data, work_dir):
+        # your code here
         # Create embeddings based on text
         # Create DataLoader to feed in training data
-        dl = dataloader.create(data)
-        # model = 
+        print("Creating train_dataloader")
+        train_dataloader = dataloader.create(data)
+        print("Running training...")
+        train_losses = train(
+            model=self.model,
+            train_dataloader=train_dataloader,
+            lr=1e-3,
+            n_epochs=10,
+            device=DEVICE,
+            verbose=True
+        )
+
+        print("Final train loss: %.4f", train_losses[-1])
+        
 
     def run_pred(self, data):
         # your code here
@@ -59,17 +82,17 @@ class MyModel:
 
     def save(self, work_dir):
         # your code here
-        # this particular model has nothing to save, but for demonstration purposes we will save a blank file
         with open(os.path.join(work_dir, 'model.checkpoint'), 'wt') as f:
-            f.write('dummy save')
+            torch.save(self.model.state_dict, f)
 
     @classmethod
     def load(cls, work_dir):
         # your code here
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
         with open(os.path.join(work_dir, 'model.checkpoint')) as f:
-            dummy_save = f.read()
-        return MyModel()
+            saved_model_state_dict = torch.load(f)
+        my_model = MyModel()
+        my_model.model.load_state_dict(saved_model_state_dict)
 
 
 if __name__ == '__main__':

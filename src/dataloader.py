@@ -7,13 +7,14 @@ import torch
 import numpy as np
 import random
 
-def create_dataloader(data: List[str]) -> torch.DataLoader:
+def create(data: List[str]) -> DataLoader:
     st_model = SentenceTransformer("all-mpnet-base-v2")
     x_text, y_code_point = sample_sequences(data)
     X_embedding = get_st_embeddings(x_text, st_model)
     y_tensor = torch.tensor(y_code_point, dtype=torch.float)
 
-    return TensorDataset(X_embedding, y_tensor)
+    dataset = TensorDataset(X_embedding, y_tensor)
+    return DataLoader(dataset, batch_size=32, shuffle=True)
 
 def sample_sequences(data: List[str]):
     x_text = []
@@ -53,6 +54,7 @@ def get_st_embeddings(
     st_model.to(device)
     sentence_embeddings = None
 
+    print("Computing ST embeddings...")
     for i in range(0, len(sentences), batch_size):
         batch_sentences = sentences[i : i + batch_size]
         batch_embeddings = st_model.encode(batch_sentences, convert_to_tensor=True)
@@ -62,5 +64,5 @@ def get_st_embeddings(
             sentence_embeddings = torch.cat(
                 [sentence_embeddings, batch_embeddings], dim=0
             )
-
+    print("Finished computing ST embeddings")
     return sentence_embeddings

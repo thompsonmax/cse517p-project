@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader
 
 # def evaluate(
 #     model: nn.Module,
@@ -90,12 +91,10 @@ import torch.nn as nn
 
 def train(
     model: nn.Module,
-    train_dataloader: torch.DataLoader,
-    X_dev_embed: torch.Tensor,
-    y_dev: torch.Tensor,
+    train_dataloader: DataLoader,
+    # dev_dataloader: DataLoader,
     lr: float = 1e-3,
-    batch_size: int = 32,
-    eval_batch_size: int = 128,
+    # eval_batch_size: int = 128,
     n_epochs: int = 10,
     device: str = "cpu",
     verbose: bool = True,
@@ -105,44 +104,25 @@ def train(
     Runs the training loop for `n_epochs` epochs.
 
     Inputs:
-    - model: The FFNN model to be trained
-    - X_train_embed: The sentence embeddings of the training data
-    - y_train: The labels of the training data
-    - X_dev_embed: The sentence embeddings of the validation data
-    - y_dev: The labels of the validation data
+    - model: The model to be trained
+    - train_dataloader: dataloader containing the training dataset
     - lr: Learning rate for the optimizer
     - n_epochs: Number of epochs to train the model
 
     Returns:
     - train_losses: List of training losses for each epoch
-    - dev_metrics: List of validation metrics (loss, accuracy, precision, recall, f1) for each epoch
+    # - dev_metrics: List of validation metrics (loss, accuracy, precision, recall, f1) for each epoch
     """
-
-    X_train_embed.to(device)
-    y_train.to(device)
-    X_dev_embed.to(device)
-    y_dev.to(device)
-    # Create a DataLoader for the training data
-
-    # A flag to check if the classification task is binary
-    is_binary_cls = y_train.max() == 1
 
     # Transfer the model to device
     model.to(device)
 
-    # TODO: Define the loss function. Remember to use BCEWithLogitsLoss for binary classification and CrossEntropyLoss for multiclass classification
-    loss_fn = None
-    # YOUR CODE HERE
-    loss_fn = nn.BCEWithLogitsLoss() if is_binary_cls else nn.CrossEntropyLoss()
+    loss_fn = nn.CrossEntropyLoss()
 
-
-    # TODO: Define the optimizer
-    optimizer = None
-    # YOUR CODE HERE
-    optimizer = Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
     train_losses = [] # List to store the training losses
-    dev_metrics = [] # List to store the validation metrics
+    # dev_metrics = [] # List to store the validation metrics
 
     for epoch in range(n_epochs): # Iterate over the epochs
 
@@ -152,19 +132,11 @@ def train(
 
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
-            y_batch = y_batch.float() if is_binary_cls else y_batch # Convert the labels to float if binary classification
-            # TODO: Perform a forward pass through the network and compute loss
-            batch_loss = None
-            # YOUR CODE HERE
+            # Perform a forward pass through the network and compute loss
             y_batch_preds = model(X_batch).squeeze(-1)
             batch_loss = loss_fn(y_batch_preds, y_batch)
 
-            # TODO: Perform a backward pass and update the weights
-            # YOUR CODE HERE
             batch_loss.backward()
-
-            # TODO: Perform a step of optimization
-            # YOUR CODE HERE
             optimizer.step()
 
             train_epoch_loss += batch_loss.item()
@@ -172,11 +144,10 @@ def train(
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
 
-        eval_metrics = evaluate(model, X_dev_embed, y_dev, eval_batch_size=eval_batch_size, device=device)
-        dev_metrics.append(eval_metrics)
+        # eval_metrics = evaluate(model, X_dev_embed, y_dev, eval_batch_size=eval_batch_size, device=device)
+        # dev_metrics.append(eval_metrics)
 
         if verbose:
-            print("Epoch: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"]))
-            # print(f"Epoch: {epoch + 1}, Train Loss: {train_epoch_loss}, Dev Loss: {eval_metrics['loss']}, Dev Accuracy: {eval_metrics['accuracy']}, Dev Precision: {eval_metrics['precision']}, Dev Recall: {eval_metrics['recall']}, Dev F1: {eval_metrics['f1']}")
-
-    return train_losses, dev_metrics
+            # print("Epoch: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"]))
+            print("Epoch: %.d, Train Loss: %.4f", epoch + 1, train_epoch_loss)
+    return train_losses
