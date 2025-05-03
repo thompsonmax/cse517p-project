@@ -5,6 +5,7 @@ import torch
 import random
 
 MAX_SAMPLING_ATTEMPTS=5
+BAD_CHARS = set([32, 10])
 
 def create(data: List[str], device='cpu') -> tuple[torch.Tensor, torch.Tensor]:
     print(f"Preprocessing data of length {len(data)}...")
@@ -34,10 +35,10 @@ def sample_sequences(data: List[str]):
 
             subsampled_seq = text_seq[:k]
             last_char = text_seq[k]
-            if last_char == ' ':
-                print("Found space char, resampling...")
-                continue
             last_char_code_point = ord(text_seq[k])
+            if last_char_code_point in BAD_CHARS:
+                # Try to resample sequence if we ended on a bad char
+                continue
 
             x_text.append(subsampled_seq)
             y_code_point.append(last_char_code_point)
