@@ -12,6 +12,7 @@ from model import FFNN
 from train import train
 from predict import predict
 from pprint import pprint
+import errno
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -28,8 +29,15 @@ class MyModel:
             num_classes=UNICODE_BMP_MAX_CODE_POINT
         )
 
+    def mkdir(self, work_dir):
+        try:
+            os.mkdir(work_dir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
     @classmethod
-    def load_training_data(self, work_dir):
+    def load_training_data(self, work_dir, force=False):
         train_dir = work_dir + "/train_embeddings"
         dev_dir = work_dir + "/dev_embeddings"
         X_train_path = work_dir + "/train_embeddings/x_embeddings.pt"
@@ -37,7 +45,7 @@ class MyModel:
         X_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
         y_dev_path = work_dir + "/dev_embeddings/y_embeddings.pt"
 
-        if os.path.isdir(train_dir) and os.path.isdir(dev_dir):
+        if os.path.isdir(train_dir) and os.path.isdir(dev_dir) and not force:
             self.X_train = torch.load(X_train_path)
             self.y_train = torch.load(y_train_path)
             self.X_dev = torch.load(X_dev_path)
@@ -55,8 +63,8 @@ class MyModel:
         self.X_train, self.y_train = dataloader.create(train_dataset, device=DEVICE)
         print('preparing dev dataset')
         self.X_dev, self.y_dev = dataloader.create(dev_dataset, device=DEVICE)
-        os.mkdir(train_dir)
-        os.mkdir(dev_dir)
+        self.mkdir(self, train_dir)
+        self.mkdir(self, dev_dir)
         torch.save(self.X_train, X_train_path)
         torch.save(self.y_train, y_train_path)
         torch.save(self.X_dev, X_dev_path)
@@ -131,6 +139,7 @@ if __name__ == '__main__':
     parser.add_argument('--work_dir', help='where to save', default='work')
     parser.add_argument('--test_data', help='path to test data', default='example/input.txt')
     parser.add_argument('--test_output', help='path to write test predictions', default='pred.txt')
+    parser.add_argument('--force', type=bool, help='rebuild the embeddings, even if a saved version is available', default=False)
     args = parser.parse_args()
 
     random.seed(0)
@@ -142,7 +151,7 @@ if __name__ == '__main__':
         print('Instatiating model')
         model = MyModel()
         print('Loading training data')
-        MyModel.load_training_data(args.work_dir)
+        MyModel.load_training_data(args.work_dir, force=args.force)
         print('Training')
         model.run_train(args.work_dir)
         print('Saving model')
