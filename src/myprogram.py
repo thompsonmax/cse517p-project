@@ -9,9 +9,11 @@ import pandas as pd
 from data_importer import DataImporter
 import dataloader
 from model import FFNN
-from train import train
+import transformer_model
+import train
 from predict import predict
 from pprint import pprint
+import hyperparams
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -22,11 +24,15 @@ class MyModel:
     """
 
     def __init__(self):
-        self.model = FFNN(
-            input_dim=768,
-            hidden_dim=3*768,
-            num_classes=UNICODE_BMP_MAX_CODE_POINT
-        )
+        self.model = transformer_model.CharacterTransformer(
+            vocab_size=hyperparams.UNICODE_MAX_CODE_POINT,
+            d_model=hyperparams.EMBED_DIM,
+            nhead=hyperparams.N_HEADS,
+            num_decoder_layers=hyperparams.N_DECODER_LAYERS,
+            dim_feedforward=hyperparams.FF_DIM,
+            max_seq_len=hyperparams.SEQ_LENGTH,
+            dropout=hyperparams.DROPOUT_RATE,
+        ).to(DEVICE)
 
     @classmethod
     def load_training_data(self, work_dir):
@@ -38,6 +44,7 @@ class MyModel:
         y_dev_path = work_dir + "/dev_embeddings/y_embeddings.pt"
 
         if os.path.isdir(train_dir) and os.path.isdir(dev_dir):
+            print('Loading cached training data')
             self.X_train = torch.load(X_train_path)
             self.y_train = torch.load(y_train_path)
             self.X_dev = torch.load(X_dev_path)
@@ -52,9 +59,13 @@ class MyModel:
         dev_dataset = dev_dataset['text'].tolist()
 
         print('preparing training dataset')
-        self.X_train, self.y_train = dataloader.create(train_dataset, device=DEVICE)
+        self.X_train, self.y_train = dataloader.preprocess_transformer(train_dataset, device=DEVICE)
+        print(f'X_train shape: {self.X_train.shape}')
+        print(f'y_train shape: {self.y_train.shape}')
         print('preparing dev dataset')
-        self.X_dev, self.y_dev = dataloader.create(dev_dataset, device=DEVICE)
+        self.X_dev, self.y_dev = dataloader.preprocess_transformer(dev_dataset, device=DEVICE)
+        print(f'X_dev shape: {self.X_dev.shape}')
+        print(f'y_dev shape: {self.y_dev.shape}')
         os.mkdir(train_dir)
         os.mkdir(dev_dir)
         torch.save(self.X_train, X_train_path)
@@ -79,23 +90,25 @@ class MyModel:
                 f.write('{}\n'.format(p))
 
     def run_train(self, work_dir):
+        print('x_train shape: {}'.format(self.X_train.shape))
+        print('X_train 0: {}'.format(self.X_train[0]))
         # your code here
         # Create embeddings based on text
-        train_losses, final_dev_metrics = train(
+        train_losses, final_dev_metrics = train.train_transformer(
             model=self.model,
             X_train=self.X_train,
             y_train=self.y_train,
             X_dev=self.X_dev,
             y_dev=self.y_dev,
             lr=1e-3,
-            n_epochs=10,
+            n_epochs=1,
             device=DEVICE,
             verbose=True,
         )
 
         print("Final train loss: %.4f" % (train_losses[-1]))
         print("Final dev metrics:")
-        pprint(final_dev_metrics)
+        print(final_dev_metrics)
         
 
     def run_pred(self, data):

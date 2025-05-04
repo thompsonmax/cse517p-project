@@ -52,6 +52,7 @@ def predict(
             # Compute the predictions and store them in the preds list.
             # Remember to apply a sigmoid function to the logits if binary classification and argmax if multiclass classification
             # For binary classification, you can use a threshold of 0.5.
+            y_batch_preds = torch.softmax(y_batch_preds, dim=-1)
             pred_top_3_batch = torch.topk(y_batch_preds, 3).indices
             pred_top_3_batch_str = []
             for pred_top_3 in pred_top_3_batch:
