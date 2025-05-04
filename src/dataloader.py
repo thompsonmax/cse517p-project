@@ -31,7 +31,11 @@ def sample_sequences(data: List[str]):
         # Continue sampling until we find a subsequence that does not end
         # in a space.
         for i in range(MAX_SAMPLING_ATTEMPTS):
-            k = random.randint(0, len(text_seq) - 1)
+            n = len(text_seq) - 1
+            if n <= 0:
+                continue
+
+            k = random.randint(0, n)
 
             subsampled_seq = text_seq[:k]
             last_char = text_seq[k]
