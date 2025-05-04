@@ -69,8 +69,11 @@ def create_transformer_dataloader(data: tuple[torch.Tensor, torch.Tensor], batch
     print(x_data[0])
     # x_data = torch.stack(x_data)
     # y_data = torch.stack(y_data)
+    print("Creating TensorDataset...")
     dataset = TensorDataset(x_data, y_data)
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, collate_fn=collate_batch)
+    print(f"Creating DataLoader with {len(dataset)} samples...")
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=shuffle) #, collate_fn=collate_batch)
+    print(f"Created DataLoader with {len(dataset)} samples.")
     return dataloader
 
 def unicode_normalization(data: List[str]) -> List[str]:
@@ -101,7 +104,7 @@ def splitXY(data: List[torch.Tensor]) -> tuple[List[torch.Tensor], List[torch.Te
             print(f"Split {i} / {len(data)}")
         if len(text) < 2:
             continue
-        for i in range(0, len(text) - block_size, 10):
+        for i in range(0, len(text) - block_size, hyperparams.STEP_SIZE):
             x = text[i:i+block_size]
             y = text[i+1:i+block_size+1]
             x_data.append(x)

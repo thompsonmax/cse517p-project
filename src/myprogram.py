@@ -101,7 +101,7 @@ class MyModel:
             X_dev=self.X_dev,
             y_dev=self.y_dev,
             lr=1e-3,
-            n_epochs=1,
+            n_epochs=10,
             device=DEVICE,
             verbose=True,
         )

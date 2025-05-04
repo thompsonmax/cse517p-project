@@ -51,8 +51,13 @@ def evaluate(
     val_loss = 0.0
     preds = [] # List to store the predictions. This will be used to compute the accuracy, precision, and recall scores.
 
+
+    j = 0
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for X_batch, y_batch in dev_dataloader: # Iterate over the batches of the validation data
+            if j % 100 == 0:
+                print(f"Eval step: {j} / {len(dev_dataloader)}")
+            j += 1
 
             # Perform a forward pass through the network and compute loss
             batch_loss = None
@@ -77,10 +82,10 @@ def evaluate(
     y_dev = y_dev.to(device)
 
     # YOUR CODE HERE
-    accuracy = ACCURACY_FN(preds, y_dev)
-    precision = PRECISION_FN(preds, y_dev)
-    recall = RECALL_FN(preds, y_dev)
-    f1 = F1_FN(preds, y_dev)
+    accuracy = 0.0 #ACCURACY_FN(preds, y_dev)
+    precision = 0.0 #PRECISION_FN(preds, y_dev)
+    recall = 0.0 #RECALL_FN(preds, y_dev)
+    f1 = 0.0 #F1_FN(preds, y_dev)
 
     return {
         "loss": val_loss,
@@ -131,10 +136,15 @@ def train(
 
         train_dataloader = DataLoader(TensorDataset(X_train, y_train), batch_size=32, shuffle=True)
         
-
+        j = 0
+        print("Setting model to train mode")
         model.train() # Set the model to training mode
         train_epoch_loss = 0.0
+        print("Training epoch %d" % (epoch + 1))
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
+            if j % 100 == 0:
+                print(f"Train step: {j} / {len(train_dataloader)}")
+            j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
 
@@ -197,9 +207,13 @@ def evaluate_transformer(
     val_loss = 0.0
     preds = [] # List to store the predictions. This will be used to compute the accuracy, precision, and recall scores.
     j = 0
+    start_time = time.time()
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for X_batch, y_batch in dev_dataloader: # Iterate over the batches of the validation data
-
+            if j % 100 == 0:
+                print(f"Eval step: {j} / {len(dev_dataloader)}, took {time.time() - start_time:.2f} seconds")
+                start_time = time.time()
+            j += 1
             # Perform a forward pass through the network and compute loss
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
             # YOUR CODE HERE
@@ -310,7 +324,14 @@ def train_transformer(
         
         model.train() # Set the model to training mode
         train_epoch_loss = 0.0
+        j = 0
+        start_time = time.time()
+        print("Training epoch %d" % (epoch + 1))
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
+            if j % 100 == 0:
+                print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, current avg loss: {train_epoch_loss / (j + 1):.4f}")
+                start_time = time.time()
+            j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
 
