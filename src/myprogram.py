@@ -17,6 +17,7 @@ import hyperparams
 
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
+print("Using device: " + DEVICE)
 
 class MyModel:
     """
