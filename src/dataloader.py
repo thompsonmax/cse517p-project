@@ -114,7 +114,6 @@ def pad_or_truncate_tensors(tensors: List[torch.Tensor], max_length: int) -> Lis
         else:
             num_to_truncate = tensor.shape[0] - max_length
             res = tensor[num_to_truncate:]
-        print(res.shape)
         result.append(res)
     return result
 
