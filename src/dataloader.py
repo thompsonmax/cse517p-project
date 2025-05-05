@@ -37,6 +37,15 @@ def preprocess_transformer(data: List[str], device='cpu') -> tuple[torch.Tensor,
     x_data, y_data = splitXY(data)
     return torch.stack(x_data), torch.stack(y_data)
 
+def preprocess_transformer_test(data: List[str], device='cpu') -> torch.Tensor:
+    print("Performing unicode normalization...")
+    data = unicode_normalization(data)
+    print("Converting text to unicode code points...")
+    data = text_to_unicode_code_points(data)
+    print("Padding or truncating tensors...")
+    data = pad_or_truncate_tensors(data, hyperparams.SEQ_LENGTH)
+    return torch.stack(data)
+
 class TransformerDataset(torch.utils.data.Dataset):
 
     def __init__(self, X: List[torch.Tensor], Y: List[torch.Tensor]):
@@ -92,6 +101,21 @@ def text_to_unicode_code_points(data: List[str]) -> List[torch.Tensor]:
     for s in data:
         code_points = [ord(c) for c in s]
         result.append(torch.tensor(code_points, dtype=torch.long))
+    return result
+
+def pad_or_truncate_tensors(tensors: List[torch.Tensor], max_length: int) -> List[torch.Tensor]:
+    """Pads or truncates a tensor to a specified length."""
+    result = []
+    for tensor in tensors:
+        res = None
+        if tensor.shape[0] < max_length:
+            padding = torch.full((max_length - len(tensor),), hyperparams.PADDING_CHAR_IDX, dtype=torch.long)
+            res = torch.cat([padding, tensor])
+        else:
+            num_to_truncate = tensor.shape[0] - max_length
+            res = tensor[num_to_truncate:]
+        print(res.shape)
+        result.append(res)
     return result
 
 

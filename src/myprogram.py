@@ -11,7 +11,7 @@ import dataloader
 from model import FFNN
 import transformer_model
 import train
-from predict import predict
+from predict import predict, predict_transformer
 from pprint import pprint
 import hyperparams
 
@@ -86,7 +86,7 @@ class MyModel:
 
     @classmethod
     def write_pred(cls, preds, fname):
-        with open(fname, 'wt') as f:
+        with open(fname, 'wt', encoding="utf-8") as f:
             for p in preds:
                 f.write('{}\n'.format(p))
 
@@ -115,8 +115,8 @@ class MyModel:
     def run_pred(self, data):
         # your code here
         # test_cache_path = 
-        X_test = dataloader.create_test(data)
-        preds = predict(
+        X_test = dataloader.preprocess_transformer_test(data, device=DEVICE)
+        preds = predict_transformer(
             X_test,
             self.model,
             device=DEVICE

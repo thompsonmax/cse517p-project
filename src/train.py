@@ -11,10 +11,10 @@ import time
 UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 
 # for evaluating dev performance
-ACCURACY_FN = Accuracy(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro")
-PRECISION_FN = Precision(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro")    
-RECALL_FN = Recall(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro")
-F1_FN = F1Score(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro")
+ACCURACY_FN = Accuracy(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
+PRECISION_FN = Precision(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)    
+RECALL_FN = Recall(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
+F1_FN = F1Score(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
 
 def evaluate(
     model: nn.Module,
@@ -193,7 +193,13 @@ def evaluate_transformer(
     """
 
     # Create a DataLoader for the validation data
-    dev_dataloader = dataloader.create_transformer_dataloader((X_dev, y_dev), batch_size=32, shuffle=False)
+    # Subsample tensors
+    rand_indices = torch.randperm(X_dev.shape[0] // 500)
+    print(f"Original shape {X_dev.shape}, {y_dev.shape}")
+    X_dev = X_dev[rand_indices, :]
+    y_dev = y_dev[rand_indices, :]
+    print(f"Downsampled shape {X_dev.shape}, {y_dev.shape}")
+    dev_dataloader = dataloader.create_transformer_dataloader((X_dev, y_dev), batch_size=hyperparams.EVAL_BATCH_SIZE, shuffle=False)
 
     # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
     model.eval()
@@ -210,10 +216,13 @@ def evaluate_transformer(
     start_time = time.time()
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for X_batch, y_batch in dev_dataloader: # Iterate over the batches of the validation data
-            if j % 100 == 0:
+            if j % 3 == 0:
                 print(f"Eval step: {j} / {len(dev_dataloader)}, took {time.time() - start_time:.2f} seconds")
                 start_time = time.time()
             j += 1
+            # if j % 500 != 0:
+            #     continue
+            # num_processed += X_batch.shape[0]
             # Perform a forward pass through the network and compute loss
             X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
             # YOUR CODE HERE
@@ -234,36 +243,41 @@ def evaluate_transformer(
             #     v, _ = torch.topk(logits_last, min(top_k, logits_last.size(-1)))
             #     logits_last[logits_last < v[:, [-1]]] = -float('Inf')
 
-            seq_pred = torch.zeros((batch_size, seq_len), dtype=torch.long).to(device)
+            seq_pred = torch.zeros((batch_size, seq_len, vocab_size), dtype=torch.float32).to(device)
             for i in range(seq_len):
                 logits_i = logits[:, i, :]
                 # y_batch_i = y_batch[:, i]
                 probs = F.softmax(logits_i, dim=-1)
-                topk = torch.topk(probs, 3)
-                idx_next = torch.argmax(probs, dim=1)
+                # topk = torch.topk(probs, 3)
+                # idx_next = torch.argmax(probs, dim=1)
                 # print(logits_i)
                 # print(probs)
                 # print(idx_next)
                 # print(topk)
-                seq_pred[:, i] = idx_next
+                seq_pred[:, i, :] = probs
 
             batch_loss = loss_fn(reshaped_logits, reshaped_y)
 
             # print(batch_preds)
-            preds.extend(seq_pred)
+            preds.extend(seq_pred.to(device))
 
             val_loss += batch_loss.item() # Accumulate the loss. Note that we use .item() to extract the loss value from the tensor.
-
+            # break
     val_loss /= len(dev_dataloader) # Compute the average loss
     preds = torch.stack(preds).to(device) # Convert the list of predictions to a tensor
     y_dev = y_dev.to(device)
+    # print(preds.shape)
+    # print(y_dev.shape)
     y_dev_flat = y_dev.view(-1)
-    preds_flat = preds.view(-1)
+    preds_flat = preds.view(preds.shape[0] * seq_len, vocab_size)
 
     # YOUR CODE HERE
-    print(preds_flat.shape)
-    print(y_dev_flat.shape)
-    y_dev_flat = y_dev_flat[:preds_flat.shape[0]]
+    # print(preds_flat.shape)
+    # print(y_dev_flat.shape)
+    preds_flat = preds_flat.to('cpu')
+    y_dev_flat = y_dev_flat.to('cpu')
+    y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
+    print("Computing metrics...")
     accuracy = ACCURACY_FN(preds_flat, y_dev_flat)
     print("Accuracy: %.4f" % (accuracy))
     precision = PRECISION_FN(preds_flat, y_dev_flat)
@@ -320,8 +334,7 @@ def train_transformer(
 
     print("Running training...")
     for epoch in range(n_epochs): # Iterate over the epochs
-        train_dataloader = dataloader.create_transformer_dataloader((X_train, y_train), batch_size=32, shuffle=True)
-        
+        train_dataloader = dataloader.create_transformer_dataloader((X_train, y_train), batch_size=hyperparams.BATCH_SIZE, shuffle=True)
         model.train() # Set the model to training mode
         train_epoch_loss = 0.0
         j = 0
@@ -353,6 +366,7 @@ def train_transformer(
 
             train_epoch_loss += batch_loss.item()
             # print("Batch loss: %.4f" % (batch_loss.item()))
+            # break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
