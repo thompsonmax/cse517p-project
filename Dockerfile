@@ -8,3 +8,5 @@ VOLUME ["/job/data", "/job/src", "/job/work", "/job/output"]
 
 RUN pip3 install datasets
 RUN pip3 install scikit-learn
+RUN pip3 install torchmetrics
+RUN pip3 install sentence-transformers

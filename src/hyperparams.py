@@ -1,0 +1,16 @@
+# VOCAB_SIZE=50000 # Number of words in embedding
+EMBED_DIM=256 # Dimension of embedding
+N_HEADS=4 # Number of attention heads
+N_DECODER_LAYERS=4 # Number of decoder layers
+TRANS_LAYERS=3 # Number of transformer layers
+FF_DIM=1024 # Dimension of FF 
+DROPOUT_RATE=0.1
+LR=0.001
+NUM_EPOCHS=10
+SEQ_LENGTH=16
+BLOCK_SIZE=16
+STEP_SIZE=64
+BATCH_SIZE=128
+EVAL_BATCH_SIZE=32
+UNICODE_MAX_CODE_POINT = 65535 # BMP
+PADDING_CHAR_IDX = 128 # Padding character index in unicode
