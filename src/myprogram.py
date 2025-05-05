@@ -133,7 +133,7 @@ class MyModel:
         # your code here
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
         model_path = os.path.join(work_dir, 'model.checkpoint')
-        saved_model_state_dict = torch.load(model_path)
+        saved_model_state_dict = torch.load(model_path, map_location=DEVICE)
         my_model = MyModel()
         my_model.model.load_state_dict(saved_model_state_dict)
         return my_model
