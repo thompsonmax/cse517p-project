@@ -9,23 +9,13 @@ class PositionalEncoding(nn.Module):
         super().__init__()
         self.dropout = nn.Dropout(p=dropout)
 
-        # Create position indices: (max_len, 1)
         position = torch.arange(max_len).unsqueeze(1)
-
-        # Calculate division term: (d_model / 2)
         div_term = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
-
-        # Initialize positional encoding matrix: (max_len, d_model)
         pe = torch.zeros(max_len, d_model)
 
-        # Apply sin to even indices in the array; 2i
         pe[:, 0::2] = torch.sin(position * div_term)
-
-        # Apply cos to odd indices in the array; 2i+1
         pe[:, 1::2] = torch.cos(position * div_term)
 
-        # Add batch dimension and register as buffer: (1, max_len, d_model)
-        # register_buffer ensures 'pe' is part of the model state but not trained
         self.register_buffer('pe', pe.unsqueeze(0))
 
     def forward(self, x):
@@ -34,26 +24,22 @@ class PositionalEncoding(nn.Module):
             x: Tensor, shape [batch_size, seq_len, embedding_dim]
         """
         # Add positional encoding to the input tensor x
-        # self.pe is (1, max_len, d_model). We slice it to match input seq_len.
-        # Broadcasting adds pe to each batch element.
+        # self.pe is (1, max_len, d_model), slice it to match input seq_len.
         x = x + self.pe[:, :x.size(1)]
-        return self.dropout(x) # Apply dropout
+        return self.dropout(x)
 
 class CharacterTransformer(nn.Module):
     def __init__(self, vocab_size, d_model, nhead, num_decoder_layers,
                  dim_feedforward, max_seq_len, dropout=0.1, padding_idx=0):
         super().__init__()
         self.d_model = d_model
-        self.padding_idx = hyperparams.PADDING_CHAR_IDX # Store padding index if used
+        self.padding_idx = hyperparams.PADDING_CHAR_IDX
 
-        # --- Layers ---
-        # Embedding Layer
         self.embedding = nn.Embedding(vocab_size, d_model, padding_idx=self.padding_idx)
 
-        # Positional Encoding
         self.pos_encoder = PositionalEncoding(d_model, max_seq_len, dropout)
 
-        # # Transformer Decoder Stack
+        # Decoder-only setup
         # decoder_layer = nn.TransformerDecoderLayer(
         #     d_model=d_model,
         #     nhead=nhead,
@@ -61,7 +47,6 @@ class CharacterTransformer(nn.Module):
         #     dropout=dropout,
         #     batch_first=True # Crucial: Input shape (batch, seq, feature)
         # )
-        # # Optional: Add final normalization layer
         # decoder_norm = nn.LayerNorm(d_model)
         # self.transformer_decoder = nn.TransformerDecoder(
         #     decoder_layer,
@@ -82,14 +67,11 @@ class CharacterTransformer(nn.Module):
             num_layers=num_decoder_layers, # Number of transformer layers   
         )
 
-        # Final Linear Output Layer
         self.fc_out = nn.Linear(d_model, vocab_size)
 
-        # Initialize weights (optional but often beneficial)
         self._init_weights()
 
     def _init_weights(self):
-        # Simple initialization example
         initrange = 0.1
         self.embedding.weight.data.uniform_(-initrange, initrange)
         self.fc_out.bias.data.zero_()
@@ -99,32 +81,30 @@ class CharacterTransformer(nn.Module):
         # src shape: (batch_size, seq_len)
         # src_padding_mask shape: (batch_size, seq_len) -> True where padded
 
-        # 1. Embedding and Positional Encoding
+        # embedding and Positional Encoding
         # embedded shape: (batch_size, seq_len, d_model)
         embedded_src = self.embedding(src) * math.sqrt(self.d_model) # Scale embedding
 
         embedded_src = self.pos_encoder(embedded_src)
 
-        # 2. Generate Causal Mask
+        # generate Causal Mask
         # tgt_mask shape: (seq_len, seq_len)
         seq_len = src.size(1)
         # device = src.device # Get device from input tensor
-        # Use built-in function to generate the mask
         causal_mask = nn.Transformer.generate_square_subsequent_mask(seq_len, device=src.device)
 
         # print(embedded_src.shape)
         # print(causal_mask.shape)
         # print(src_padding_mask.shape)
-        # 3. Pass through Transformer Decoder
+        # pass through Transformer Decoder
         # Decoder input shape: (batch_size, seq_len, d_model)
         # Causal mask shape: (seq_len, seq_len)
         # Padding mask shape: (batch_size, seq_len)
         # Note: src -> decoder's tgt, src_padding_mask -> decoder's tgt_key_padding_mask
-        # Memory related args are not used in decoder-only setup.
         transformer_output = self.transformer_decoder_blocks(embedded_src, mask=causal_mask)
         # decoder_output shape: (batch_size, seq_len, d_model)
 
-        # 4. Final Linear Layer
+        # final Linear Layer
         # logits shape: (batch_size, seq_len, vocab_size)
         logits = self.fc_out(transformer_output)
 
