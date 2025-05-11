@@ -60,9 +60,9 @@ class MyModel:
             self.y_dev = torch.load(y_dev_path)
             return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
+        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=4, max_samples=15000)
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-        train_dataset, dev_dataset = DataImporter.divide_corpus_into_stratified_datasets(common_corpus_stratified)
+        train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)
 
         train_dataset = train_dataset['text'].tolist()
         dev_dataset = dev_dataset['text'].tolist()
@@ -75,8 +75,8 @@ class MyModel:
         self.X_dev, self.y_dev = dataloader.preprocess_transformer(dev_dataset, device=DEVICE)
         print(f'X_dev shape: {self.X_dev.shape}')
         print(f'y_dev shape: {self.y_dev.shape}')
-        os.mkdir(train_dir)
-        os.mkdir(dev_dir)
+        self.mkdir(self, train_dir)
+        self.mkdir(self, dev_dir)
         torch.save(self.X_train, X_train_path)
         torch.save(self.y_train, y_train_path)
         torch.save(self.X_dev, X_dev_path)
