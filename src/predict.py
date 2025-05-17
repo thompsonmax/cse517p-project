@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader, TensorDataset
 from data_importer import DataImporter
 import dataloader
 import hyperparams
+from typing import List, Dict
 
 def predict(
     data: torch.Tensor,
@@ -71,6 +72,7 @@ def predict(
 def predict_transformer(
     data: torch.Tensor,
     model: nn.Module,
+    vocab: List[str],
     batch_size: int = 32,
     device: str = "cpu",
     **kwargs,
@@ -123,7 +125,7 @@ def predict_transformer(
                 # Convert top 3 preds to unicode characters
                 pred_top3_list = []
                 for p in pred_top_3:
-                    pred_top3_list.append(chr(p))
+                    pred_top3_list.append(vocab[p])
                 pred_top3_str = ''.join(pred_top3_list)
                 pred_top_3_batch_str.append(pred_top3_str)
             preds.extend(pred_top_3_batch_str)

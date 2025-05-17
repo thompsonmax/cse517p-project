@@ -14,8 +14,9 @@ import train
 from predict import predict, predict_transformer
 from pprint import pprint
 import hyperparams
+import pickle
 
-UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
+# UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using device: " + DEVICE)
 
@@ -25,13 +26,14 @@ class MyModel:
     """
 
     def __init__(self):
+        print(f"Using pytorch version: {torch.__version__}")
         self.model = transformer_model.CharacterTransformer(
-            vocab_size=hyperparams.UNICODE_MAX_CODE_POINT,
-            d_model=hyperparams.EMBED_DIM,
+            output_vocab_size=hyperparams.CHAR_VOCAB_SIZE,
+            embed_dim=hyperparams.EMBED_DIM,
             nhead=hyperparams.N_HEADS,
             num_decoder_layers=hyperparams.N_DECODER_LAYERS,
             dim_feedforward=hyperparams.FF_DIM,
-            max_seq_len=hyperparams.SEQ_LENGTH,
+            # max_seq_len=hyperparams.SEQ_LENGTH,
             dropout=hyperparams.DROPOUT_RATE,
         ).to(DEVICE)
 
@@ -43,13 +45,24 @@ class MyModel:
         y_train_path = work_dir + "/train_embeddings/y_embeddings.pt"
         X_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
         y_dev_path = work_dir + "/dev_embeddings/y_embeddings.pt"
+        vocab_path = work_dir + "/train_embeddings/vocab.pt"
 
         if os.path.isdir(train_dir) and os.path.isdir(dev_dir):
             print('Loading cached training data')
-            self.X_train = torch.load(X_train_path)
-            self.y_train = torch.load(y_train_path)
-            self.X_dev = torch.load(X_dev_path)
-            self.y_dev = torch.load(y_dev_path)
+            with open(X_train_path, 'rb') as f:
+                self.X_train = pickle.load(f)
+            with open(y_train_path, 'rb') as f:
+                self.y_train = pickle.load(f)
+            with open(X_dev_path, 'rb') as f:
+                self.X_dev = pickle.load(f)
+            with open(y_dev_path, 'rb') as f:
+                self.y_dev = pickle.load(f)
+            with open(vocab_path, 'rb') as f:
+                self.char_vocab = pickle.load(f)
+            print(f'X_train len: {len(self.X_train)}')
+            print(f'y_train len: {len(self.y_train)}')
+            print(f'X_dev len: {len(self.X_dev)}')
+            print(f'y_dev len: {len(self.y_dev)}')
             return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=50, sample_size=50)
@@ -60,19 +73,25 @@ class MyModel:
         dev_dataset = dev_dataset['text'].tolist()
 
         print('preparing training dataset')
-        self.X_train, self.y_train = dataloader.preprocess_transformer(train_dataset, device=DEVICE)
-        print(f'X_train shape: {self.X_train.shape}')
-        print(f'y_train shape: {self.y_train.shape}')
+        self.X_train, self.y_train, self.char_vocab = dataloader.preprocess_transformer(train_dataset, device=DEVICE)
+        print(f'X_train len: {len(self.X_train)}')
+        print(f'y_train len: {len(self.y_train)}')
         print('preparing dev dataset')
-        self.X_dev, self.y_dev = dataloader.preprocess_transformer(dev_dataset, device=DEVICE)
-        print(f'X_dev shape: {self.X_dev.shape}')
-        print(f'y_dev shape: {self.y_dev.shape}')
+        self.X_dev, self.y_dev, _ = dataloader.preprocess_transformer(dev_dataset, device=DEVICE, char_vocab=self.char_vocab)
+        print(f'X_dev len: {len(self.X_dev)}')
+        print(f'y_dev len: {len(self.y_dev)}')
         os.mkdir(train_dir)
         os.mkdir(dev_dir)
-        torch.save(self.X_train, X_train_path)
-        torch.save(self.y_train, y_train_path)
-        torch.save(self.X_dev, X_dev_path)
-        torch.save(self.y_dev, y_dev_path)
+        with open(X_train_path, 'wb') as f:
+            pickle.dump(self.X_train, f)
+        with open(y_train_path, 'wb') as f:
+            pickle.dump(self.y_train, f)
+        with open(X_dev_path, 'wb') as f:
+            pickle.dump(self.X_dev, f)
+        with open(y_dev_path, 'wb') as f:
+            pickle.dump(self.y_dev, f)
+        with open(vocab_path, 'wb') as f:
+            pickle.dump(self.char_vocab, f)
 
     @classmethod
     def load_test_data(cls, fname):
@@ -91,8 +110,7 @@ class MyModel:
                 f.write('{}\n'.format(p))
 
     def run_train(self, work_dir):
-        print('x_train shape: {}'.format(self.X_train.shape))
-        print('X_train 0: {}'.format(self.X_train[0]))
+        print('x_train len: {}'.format(len(self.X_train)))
         # your code here
         # Create embeddings based on text
         train_losses, final_dev_metrics = train.train_transformer(
@@ -121,21 +139,32 @@ class MyModel:
             self.model,
             device=DEVICE
         )
+        char_preds = []
+        for pred in preds:
+            char_pred = [self.char_vocab[i] for i in pred]
+            char_preds.append(char_pred)
         return preds
 
     def save(self, work_dir):
         # your code here
         model_path = os.path.join(work_dir, 'model.checkpoint')
+        vocab_path = os.path.join(work_dir, 'vocab.pt')
         torch.save(model.model.state_dict(), model_path)
+        with open(vocab_path, 'wb') as f:
+            pickle.dump(self.char_vocab, f)
 
     @classmethod
-    def load(cls, work_dir):
+    def load(self, cls, work_dir):
         # your code here
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
         model_path = os.path.join(work_dir, 'model.checkpoint')
         saved_model_state_dict = torch.load(model_path, map_location=DEVICE)
         my_model = MyModel()
         my_model.model.load_state_dict(saved_model_state_dict)
+        vocab_path = os.path.join(work_dir, 'vocab.pt')
+        with open(vocab_path, 'rb') as f:
+            self.char_vocab = pickle.load(f)
+
         return my_model
 
 

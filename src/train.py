@@ -7,14 +7,13 @@ import torch.nn.functional as F
 from torchmetrics import Precision, Recall, F1Score, Accuracy
 import hyperparams
 import time
-
-UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
+import random
 
 # for evaluating dev performance
-ACCURACY_FN = Accuracy(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
-PRECISION_FN = Precision(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)    
-RECALL_FN = Recall(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
-F1_FN = F1Score(num_classes=UNICODE_BMP_MAX_CODE_POINT, task="multiclass", average="macro", top_k=3)
+ACCURACY_FN = Accuracy(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
+PRECISION_FN = Precision(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)    
+RECALL_FN = Recall(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
+F1_FN = F1Score(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
 
 def evaluate(
     model: nn.Module,
@@ -69,7 +68,7 @@ def evaluate(
             # Remember to apply a sigmoid function to the logits if binary classification and argmax if multiclass classification
             # For binary classification, you can use a threshold of 0.5.
             # convert y_batch into a one_hot encoding matrix
-            y_one_hot = F.one_hot(y_batch.long(), num_classes=UNICODE_BMP_MAX_CODE_POINT).float()
+            y_one_hot = F.one_hot(y_batch.long(), num_classes=hyperparams.CHAR_VOCAB_SIZE).float()
             y_batch_preds = model(X_batch).squeeze(-1)
             batch_loss = loss_fn(y_batch_preds, y_one_hot)
             batch_preds = torch.argmax(y_batch_preds, dim=1) # Get the predicted class labels
@@ -146,10 +145,10 @@ def train(
                 print(f"Train step: {j} / {len(train_dataloader)}")
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
+            y_batch = y_batch.to(device) # Transfer the data to device
 
             # convert y_batch into a one_hot encoding matrix
-            y_one_hot = F.one_hot(y_batch.long(), num_classes=UNICODE_BMP_MAX_CODE_POINT).float()
+            y_one_hot = F.one_hot(y_batch.long(), num_classes=hyperparams.CHAR_VOCAB_SIZE).float()
             # Perform a forward pass through the network and compute loss
             y_batch_preds = model(X_batch).squeeze(-1)
 
@@ -174,8 +173,8 @@ def train(
 
 def evaluate_transformer(
     model: nn.Module,
-    X_dev: torch.Tensor,
-    y_dev: torch.Tensor,
+    X_dev: List[str],
+    y_dev: List[torch.Tensor],
     device: str = "cpu",
 ) -> Dict[str, float]:
 
@@ -194,11 +193,11 @@ def evaluate_transformer(
 
     # Create a DataLoader for the validation data
     # Subsample tensors
-    rand_indices = torch.randperm(X_dev.shape[0] // 500)
-    print(f"Original shape {X_dev.shape}, {y_dev.shape}")
-    X_dev = X_dev[rand_indices, :]
-    y_dev = y_dev[rand_indices, :]
-    print(f"Downsampled shape {X_dev.shape}, {y_dev.shape}")
+    rand_indices = random.sample(range(len(X_dev)), len(X_dev) // 500)
+    print(f"Original shape {len(X_dev)}, {len(y_dev)}")
+    X_dev = [X_dev[i] for i in rand_indices]
+    y_dev = [y_dev[i] for i in rand_indices]
+    print(f"Downsampled shape {len(X_dev)}, {len(y_dev)}")
     dev_dataloader = dataloader.create_transformer_dataloader((X_dev, y_dev), batch_size=hyperparams.EVAL_BATCH_SIZE, shuffle=False)
 
     # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
@@ -224,16 +223,13 @@ def evaluate_transformer(
             #     continue
             # num_processed += X_batch.shape[0]
             # Perform a forward pass through the network and compute loss
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
+            y_batch = y_batch.to(device) # Transfer the data to device
             # YOUR CODE HERE
 
-            # Compute the predictions and store them in the preds list.
-            # Remember to apply a sigmoid function to the logits if binary classification and argmax if multiclass classification
-            # For binary classification, you can use a threshold of 0.5.
-            # convert y_batch into a one_hot encoding matrix
-            padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
+            # padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
 
-            logits = model(X_batch, src_padding_mask=padding_mask)
+            logits = model(X_batch)
+            print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
             reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
@@ -265,18 +261,20 @@ def evaluate_transformer(
             # break
     val_loss /= len(dev_dataloader) # Compute the average loss
     preds = torch.stack(preds).to(device) # Convert the list of predictions to a tensor
-    y_dev = y_dev.to(device)
+    y_dev = torch.stack(y_dev).to(device)
     # print(preds.shape)
     # print(y_dev.shape)
     y_dev_flat = y_dev.view(-1)
     preds_flat = preds.view(preds.shape[0] * seq_len, vocab_size)
 
     # YOUR CODE HERE
-    # print(preds_flat.shape)
-    # print(y_dev_flat.shape)
     preds_flat = preds_flat.to('cpu')
     y_dev_flat = y_dev_flat.to('cpu')
     y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
+    print(preds_flat.shape)
+    print(y_dev_flat.shape)
+    print(preds_flat[0])
+    print(y_dev_flat[0])
     print("Computing metrics...")
     accuracy = ACCURACY_FN(preds_flat, y_dev_flat)
     print("Accuracy: %.4f" % (accuracy))
@@ -300,10 +298,10 @@ def evaluate_transformer(
 
 def train_transformer(
     model: nn.Module,
-    X_train: torch.Tensor,
-    y_train: torch.Tensor,
-    X_dev: torch.Tensor,
-    y_dev: torch.Tensor,
+    X_train: List[str],
+    y_train: List[torch.Tensor],
+    X_dev: List[str],
+    y_dev: List[torch.Tensor],
     lr: float = 1e-3,
     n_epochs: int = 10,
     device: str = "cpu",
@@ -341,16 +339,20 @@ def train_transformer(
         start_time = time.time()
         print("Training epoch %d" % (epoch + 1))
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
-            if j % 100 == 0:
+            if j % 1 == 0:
                 print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, current avg loss: {train_epoch_loss / (j + 1):.4f}")
                 start_time = time.time()
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
-            X_batch, y_batch = X_batch.to(device), y_batch.to(device) # Transfer the data to device
+            y_batch = y_batch.to(device) # Transfer the data to device
 
-            padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
+            # padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
 
-            logits = model(X_batch, src_padding_mask=padding_mask)
+            # print(f"X_batch: f{X_batch}")
+            # for x in X_batch:
+            #     print(f"x len {len(x)}")
+            logits = model(X_batch)
+            print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
             reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
