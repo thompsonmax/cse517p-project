@@ -73,7 +73,7 @@ class MyModel:
             print(f'y_dev len: {len(self.y_dev)}')
             return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=4, max_samples=15000)
+        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=4, max_samples=hyperparams.DATASET_MAX_SAMPLES)
         print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
         train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)
 
