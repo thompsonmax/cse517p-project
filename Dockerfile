@@ -6,7 +6,5 @@ VOLUME ["/job/data", "/job/src", "/job/work", "/job/output"]
 # You should install any dependencies you need here.
 # RUN pip install tqdm
 
-RUN pip3 install datasets
-RUN pip3 install scikit-learn
-RUN pip3 install torchmetrics
-RUN pip3 install sentence-transformers
+COPY requirements.txt /job/
+RUN pip3 install -r requirements.txt

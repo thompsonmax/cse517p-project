@@ -5,6 +5,9 @@ set -e
 rm -rf submit submit.zip
 mkdir -p submit
 
+# copy requirements
+cp requirements.txt submit/requirements.txt
+
 # submit team.txt
 printf "Kavya Varghese,kavyav\nMax Thompson,thompm22" > submit/team.txt
 
