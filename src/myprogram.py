@@ -85,22 +85,11 @@ class MyModel:
         print(f'X_train len: {len(self.X_train)}')
         print(f'y_train len: {len(self.y_train)}')
         print('preparing dev dataset')
-<<<<<<< HEAD
-        self.X_dev, self.y_dev = dataloader.preprocess_transformer(dev_dataset, device=DEVICE)
-        print(f'X_dev shape: {self.X_dev.shape}')
-        print(f'y_dev shape: {self.y_dev.shape}')
-        self.mkdir(self, train_dir)
-        self.mkdir(self, dev_dir)
-        torch.save(self.X_train, X_train_path)
-        torch.save(self.y_train, y_train_path)
-        torch.save(self.X_dev, X_dev_path)
-        torch.save(self.y_dev, y_dev_path)
-=======
         self.X_dev, self.y_dev, _ = dataloader.preprocess_transformer(dev_dataset, device=DEVICE, char_vocab=self.char_vocab)
         print(f'X_dev len: {len(self.X_dev)}')
         print(f'y_dev len: {len(self.y_dev)}')
-        os.mkdir(train_dir)
-        os.mkdir(dev_dir)
+        self.mkdir(self, train_dir)
+        self.mkdir(self, dev_dir)
         with open(X_train_path, 'wb') as f:
             pickle.dump(self.X_train, f)
         with open(y_train_path, 'wb') as f:
@@ -111,7 +100,6 @@ class MyModel:
             pickle.dump(self.y_dev, f)
         with open(vocab_path, 'wb') as f:
             pickle.dump(self.char_vocab, f)
->>>>>>> transformer
 
     @classmethod
     def load_test_data(cls, fname):
@@ -157,12 +145,9 @@ class MyModel:
         preds = predict_transformer(
             X_test,
             self.model,
+            vocab=self.char_vocab,
             device=DEVICE
         )
-        char_preds = []
-        for pred in preds:
-            char_pred = [self.char_vocab[i] for i in pred]
-            char_preds.append(char_pred)
         return preds
 
     def save(self, work_dir):
