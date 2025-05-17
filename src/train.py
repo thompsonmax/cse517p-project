@@ -229,7 +229,7 @@ def evaluate_transformer(
             # padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
 
             logits = model(X_batch)
-            print(f"Logits shape: {logits.shape}")
+            # print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
             reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
@@ -271,10 +271,10 @@ def evaluate_transformer(
     preds_flat = preds_flat.to('cpu')
     y_dev_flat = y_dev_flat.to('cpu')
     y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
-    print(preds_flat.shape)
-    print(y_dev_flat.shape)
-    print(preds_flat[0])
-    print(y_dev_flat[0])
+    # print(preds_flat.shape)
+    # print(y_dev_flat.shape)
+    # print(preds_flat[0])
+    # print(y_dev_flat[0])
     print("Computing metrics...")
     accuracy = ACCURACY_FN(preds_flat, y_dev_flat)
     print("Accuracy: %.4f" % (accuracy))
@@ -339,7 +339,7 @@ def train_transformer(
         start_time = time.time()
         print("Training epoch %d" % (epoch + 1))
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
-            if j % 1 == 0:
+            if j % 100 == 0 or device == "cpu": # Print every 100 steps, or every line if CPU because it's hella slow
                 print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, current avg loss: {train_epoch_loss / (j + 1):.4f}")
                 start_time = time.time()
             j += 1
@@ -352,7 +352,7 @@ def train_transformer(
             # for x in X_batch:
             #     print(f"x len {len(x)}")
             logits = model(X_batch)
-            print(f"Logits shape: {logits.shape}")
+            # print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
             reshaped_logits = logits.view(batch_size * seq_len, vocab_size)

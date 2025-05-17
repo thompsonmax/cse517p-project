@@ -127,7 +127,7 @@ class CharacterTransformer(nn.Module):
         # generate Causal Mask
         # tgt_mask shape: (seq_len, seq_len)
         seq_len = input_ids.size(1)
-        print(f"seq_len: {seq_len}")
+        # print(f"seq_len: {seq_len}")
         device = input_ids.device
         causal_mask = nn.Transformer.generate_square_subsequent_mask(seq_len, device=device)
 
