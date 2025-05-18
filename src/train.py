@@ -373,7 +373,7 @@ def train_transformer(
 
             train_epoch_loss += batch_loss.item()
             # print("Batch loss: %.4f" % (batch_loss.item()))
-            break
+            # break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
