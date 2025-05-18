@@ -134,6 +134,7 @@ class MyModel:
             y_train=y_train_list,
             X_dev=self.X_dev,
             y_dev=y_dev_list,
+            vocab_size=len(self.char_vocab),
             work_dir=work_dir,
             lr=1e-3,
             n_epochs=10,

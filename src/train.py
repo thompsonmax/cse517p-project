@@ -10,17 +10,11 @@ import time
 import random
 import os
 
-# for evaluating dev performance
-ACCURACY_FN = Accuracy(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
-PRECISION_FN = Precision(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)    
-RECALL_FN = Recall(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
-F1_FN = F1Score(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
-
-
 def evaluate_transformer(
     model: nn.Module,
     X_dev: List[str],
     y_dev: List[torch.Tensor],
+    vocab_size: int,
     device: str = "cpu",
 ) -> Dict[str, float]:
 
@@ -39,7 +33,7 @@ def evaluate_transformer(
 
     # Create a DataLoader for the validation data
     # Subsample tensors
-    vocab_size = model.char_vocab_size
+    
     ACCURACY_FN = Accuracy(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
     PRECISION_FN = Precision(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)    
     RECALL_FN = Recall(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
@@ -64,6 +58,8 @@ def evaluate_transformer(
     preds = [] # List to store the predictions. This will be used to compute the accuracy, precision, and recall scores.
     j = 0
     start_time = time.time()
+    all_batch_logits_flat = []
+    all_batch_y_batch = []
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for X_batch, y_batch in dev_dataloader: # Iterate over the batches of the validation data
             if j % 3 == 0:
@@ -90,38 +86,43 @@ def evaluate_transformer(
             #     v, _ = torch.topk(logits_last, min(top_k, logits_last.size(-1)))
             #     logits_last[logits_last < v[:, [-1]]] = -float('Inf')
 
-            seq_pred = torch.zeros((batch_size, seq_len, vocab_size), dtype=torch.float32).to(device)
-            for i in range(seq_len):
-                logits_i = logits[:, i, :]
-                # y_batch_i = y_batch[:, i]
-                probs = F.softmax(logits_i, dim=-1)
-                # topk = torch.topk(probs, 3)
-                # idx_next = torch.argmax(probs, dim=1)
-                # print(logits_i)
-                # print(probs)
-                # print(idx_next)
-                # print(topk)
-                seq_pred[:, i, :] = probs
+            # seq_pred = torch.zeros((batch_size, seq_len, vocab_size), dtype=torch.float32).to(device)
+            # for i in range(seq_len):
+            #     logits_i = logits[:, i, :]
+            #     # y_batch_i = y_batch[:, i]
+            #     probs = F.softmax(logits_i, dim=-1)
+            #     # topk = torch.topk(probs, 3)
+            #     # idx_next = torch.argmax(probs, dim=1)
+            #     # print(logits_i)
+            #     # print(probs)
+            #     # print(idx_next)
+            #     # print(topk)
+            #     seq_pred[:, i, :] = probs
+
+            all_batch_logits_flat.append(reshaped_logits)
+            all_batch_y_batch.append(reshaped_y)
 
             batch_loss = loss_fn(reshaped_logits, reshaped_y)
 
             # print(batch_preds)
-            preds.extend(seq_pred.to(device))
+            # preds.extend(seq_pred.to(device))
 
             val_loss += batch_loss.item() # Accumulate the loss. Note that we use .item() to extract the loss value from the tensor.
             # break
     val_loss /= len(dev_dataloader) # Compute the average loss
-    preds = torch.stack(preds).to(device) # Convert the list of predictions to a tensor
-    y_dev = torch.stack(y_dev).to(device)
+    # preds = torch.cat(preds, dim=0).to(device) # Convert the list of predictions to a tensor
+    # y_dev = torch.stack(y_dev).to(device)
     # print(preds.shape)
     # print(y_dev.shape)
-    y_dev_flat = y_dev.view(-1)
-    preds_flat = preds.view(preds.shape[0] * seq_len, vocab_size)
+    preds_flat = torch.cat(all_batch_logits_flat).to('cpu') # (total_tokens, vocab_size)
+    y_dev_flat = torch.cat(all_batch_y_batch).to('cpu')
+    # y_dev_flat = y_dev.view(-1)
+    # preds_flat = preds.view(preds.shape[0] * seq_len, vocab_size)
 
-    # YOUR CODE HERE
-    preds_flat = preds_flat.to('cpu')
-    y_dev_flat = y_dev_flat.to('cpu')
-    y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
+    # # YOUR CODE HERE
+    # preds_flat = preds_flat.to('cpu')
+    # y_dev_flat = y_dev_flat.to('cpu')
+    # y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
     # print(preds_flat.shape)
     # print(y_dev_flat.shape)
     # print(preds_flat[0])
@@ -153,6 +154,7 @@ def train_transformer(
     y_train: List[torch.Tensor],
     X_dev: List[str],
     y_dev: List[torch.Tensor],
+    vocab_size: int,
     work_dir: str = ".",
     lr: float = 1e-3,
     n_epochs: int = 10,
@@ -191,11 +193,8 @@ def train_transformer(
         train_epoch_loss = 0.0
         j = 0
         start_time = time.time()
-        print("Training epoch %d" % (epoch + 1))
+        print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()[0]:.6f}")
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
-            if j % 100 == 0 or device == "cpu": # Print every 100 steps, or every line if CPU because it's hella slow
-                print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, current avg loss: {train_epoch_loss / (j + 1):.4f}")
-                start_time = time.time()
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             y_batch = y_batch.to(device) # Transfer the data to device
@@ -225,8 +224,13 @@ def train_transformer(
             optimizer.step()
 
             train_epoch_loss += batch_loss.item()
+
+            if j % 100 == 0 or device == "cpu": # Print every 100 steps, or every line if CPU because it's hella slow
+                print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, iteration loss: {batch_loss.item()}, epoch avg loss: {train_epoch_loss / (j + 1):.4f}")
+                start_time = time.time()
             # print("Batch loss: %.4f" % (batch_loss.item()))
-            # break
+            # if j % 25 == 0:
+            #     break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
@@ -236,7 +240,7 @@ def train_transformer(
         model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), model_path)
 
-        eval_metrics = evaluate_transformer(model, X_dev, y_dev, device=device)
+        eval_metrics = evaluate_transformer(model, X_dev, y_dev, vocab_size, device=device)
         dev_metrics.append(eval_metrics)
 
         if verbose:
