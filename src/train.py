@@ -181,7 +181,7 @@ def train_transformer(
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2, threshold=0.01)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.75)
 
     train_losses = [] # List to store the training losses
     dev_metrics = [] # List to store the validation metrics
@@ -193,7 +193,7 @@ def train_transformer(
         train_epoch_loss = 0.0
         j = 0
         start_time = time.time()
-        print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()[0]:.6f}")
+        print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_lr()}")
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
@@ -234,7 +234,7 @@ def train_transformer(
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
-        scheduler.step(train_epoch_loss)
+        scheduler.step()
 
         # Write the model to disk every epoch
         model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
