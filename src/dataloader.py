@@ -185,7 +185,7 @@ def truncate_vocab_to_size(vocab: set[int], max_size: int) -> List[int]:
     # We use the last index of the vocab as the "unknown" character
     trunc_max_size = max_size - 2
     # Let first 2 indices be UNK_CHAR and PADDING_CHAR
-    result_vocab = [hyperparams.UNK_CHAR, hyperparams.PADDING_CHAR]
+    result_vocab = [hyperparams.UNK_CODE_POINT, hyperparams.PADDING_CODE_POINT]
 
     if len(vocab) > trunc_max_size:
         sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
