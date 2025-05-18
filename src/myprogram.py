@@ -59,12 +59,10 @@ class MyModel:
             print('Loading cached training data')
             with open(X_train_path, 'rb') as f:
                 self.X_train = pickle.load(f)
-            with open(y_train_path, 'rb') as f:
-                self.y_train = pickle.load(f)
+            self.y_train = torch.load(y_train_path)
             with open(X_dev_path, 'rb') as f:
                 self.X_dev = pickle.load(f)
-            with open(y_dev_path, 'rb') as f:
-                self.y_dev = pickle.load(f)
+            self.y_dev = torch.load(y_dev_path)
             with open(vocab_path, 'rb') as f:
                 self.char_vocab = pickle.load(f)
             print(f'X_train len: {len(self.X_train)}')
@@ -88,16 +86,17 @@ class MyModel:
         self.X_dev, self.y_dev, _ = dataloader.preprocess_transformer(dev_dataset, device=DEVICE, char_vocab=self.char_vocab)
         print(f'X_dev len: {len(self.X_dev)}')
         print(f'y_dev len: {len(self.y_dev)}')
+        print("Saving training data...")
         self.mkdir(self, train_dir)
         self.mkdir(self, dev_dir)
         with open(X_train_path, 'wb') as f:
             pickle.dump(self.X_train, f)
-        with open(y_train_path, 'wb') as f:
-            pickle.dump(self.y_train, f)
+        torch.save(self.y_train, y_train_path)
+        print("Saving dev data...")
         with open(X_dev_path, 'wb') as f:
             pickle.dump(self.X_dev, f)
-        with open(y_dev_path, 'wb') as f:
-            pickle.dump(self.y_dev, f)
+        torch.save(self.y_dev, y_dev_path)
+        print("Saving vocab data...")
         with open(vocab_path, 'wb') as f:
             pickle.dump(self.char_vocab, f)
 
@@ -121,12 +120,14 @@ class MyModel:
         print('x_train len: {}'.format(len(self.X_train)))
         # your code here
         # Create embeddings based on text
+        y_train_list = list(torch.unbind(self.y_train, dim=0))
+        y_dev_list = list(torch.unbind(self.y_dev, dim=0))
         train_losses, final_dev_metrics = train.train_transformer(
             model=self.model,
             X_train=self.X_train,
-            y_train=self.y_train,
+            y_train=y_train_list,
             X_dev=self.X_dev,
-            y_dev=self.y_dev,
+            y_dev=y_dev_list,
             lr=1e-3,
             n_epochs=10,
             device=DEVICE,

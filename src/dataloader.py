@@ -29,7 +29,7 @@ def create_test(data: List[str], device='cpu') -> torch.Tensor:
     return get_st_embeddings(data, st_model, device=device)
 
 
-def preprocess_transformer(data: List[str], device='cpu', char_vocab=None) -> tuple[List[str], List[torch.Tensor], set[int]]:
+def preprocess_transformer(data: List[str], device='cpu', char_vocab=None) -> tuple[List[str], torch.Tensor, set[int]]:
     print("Performing unicode normalization...")
     data = unicode_normalization(data)
     print("Splitting into x and y text sequences...")
@@ -57,7 +57,7 @@ def preprocess_transformer(data: List[str], device='cpu', char_vocab=None) -> tu
     print(f"Generated x text of length {len(x_text)}")
     print(f"Generated y tensor of shape {y_tensor.shape}")
     print(f"Generated vocab of size {len(vocab)}")
-    return x_text, y_data, vocab
+    return x_text, y_tensor, vocab
 
 def preprocess_transformer_test(data: List[str], device='cpu') -> torch.Tensor:
     print("Performing unicode normalization...")
