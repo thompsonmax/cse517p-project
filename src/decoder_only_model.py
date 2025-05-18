@@ -44,9 +44,9 @@ class DecoderCharacterTransformer(nn.Module):
 
     def init_with_vocab(self, vocab: List[str]):
         self.char_vocab_size = len(vocab)
-        char_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
+        code_point_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
 
-        self.code_point_to_idx = char_to_idx_map
+        self.code_point_to_idx = code_point_to_idx_map
         self.char_padding_idx = hyperparams.PADDING_CHAR_IDX
         self.char_unk_idx = hyperparams.UNK_CHAR_IDX
 
@@ -100,7 +100,7 @@ class DecoderCharacterTransformer(nn.Module):
         batch_input_ids = []
         for text in src:
             code_points = [ord(char) for char in text]
-            char_indices = [self.code_point_to_idx.get(char, self.char_unk_idx) for char in code_points]
+            char_indices = [self.code_point_to_idx.get(code_point, self.char_unk_idx) for code_point in code_points]
 
             if len(char_indices) > hyperparams.SEQ_LENGTH:
                 char_indices = char_indices[:hyperparams.SEQ_LENGTH]
