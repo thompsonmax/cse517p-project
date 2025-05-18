@@ -198,7 +198,7 @@ def evaluate_transformer(
     PRECISION_FN = Precision(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)    
     RECALL_FN = Recall(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
     F1_FN = F1Score(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
-    rand_indices = random.sample(range(len(X_dev)), len(X_dev) // 500)
+    rand_indices = random.sample(range(len(X_dev)), 128)
     print(f"Original shape {len(X_dev)}, {len(y_dev)}")
     X_dev = [X_dev[i] for i in rand_indices]
     y_dev = [y_dev[i] for i in rand_indices]
