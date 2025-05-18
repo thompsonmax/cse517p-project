@@ -29,7 +29,7 @@ class MyModel:
 
     def __init__(self):
         print(f"Using pytorch version: {torch.__version__}")
-        self.model = decoder_only_model.DecoderCharacterTransformer(
+        self.model = transformer_model.CharacterTransformer(
             embed_dim=hyperparams.EMBED_DIM,
             nhead=hyperparams.N_HEADS,
             num_decoder_layers=hyperparams.N_DECODER_LAYERS,
