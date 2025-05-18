@@ -201,7 +201,7 @@ def convert_y_to_vocab_indices(data: List[torch.Tensor], vocab: List[int], vocab
 
     result = []
     unk_chars_inc = 0
-    index_to_freq_dist = defaultdict(int)
+    # index_to_freq_dist = defaultdict(int)
     for s in data:
         indices = []
         for code_point in s:
@@ -211,15 +211,15 @@ def convert_y_to_vocab_indices(data: List[torch.Tensor], vocab: List[int], vocab
             else:
                 idx = vocab_size - 1  # UNK_CHAR
                 unk_chars_inc += 1
-            index_to_freq_dist[idx] += 1
+            # index_to_freq_dist[idx] += 1
             # print(f"Code point {code_point} -> index {idx}")
             indices.append(idx)
         result.append(torch.tensor(indices, dtype=torch.long))
     print(f"Number of unknown characters: {unk_chars_inc}")
     # print(f"Generated indices {result}")
     # Sort index distribution
-    index_to_freq_dist = dict(sorted(index_to_freq_dist.items(), key=lambda item: item[1], reverse=True))
-    print(f"Index to frequency distribution: {index_to_freq_dist}")
+    # index_to_freq_dist = dict(sorted(index_to_freq_dist.items(), key=lambda item: item[1], reverse=True))
+    # print(f"Index to frequency distribution: {index_to_freq_dist}")
     return result
 
 
