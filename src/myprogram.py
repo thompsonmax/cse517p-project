@@ -29,12 +29,10 @@ class MyModel:
     def __init__(self):
         print(f"Using pytorch version: {torch.__version__}")
         self.model = transformer_model.CharacterTransformer(
-            output_vocab_size=hyperparams.CHAR_VOCAB_SIZE,
             embed_dim=hyperparams.EMBED_DIM,
             nhead=hyperparams.N_HEADS,
             num_decoder_layers=hyperparams.N_DECODER_LAYERS,
             dim_feedforward=hyperparams.FF_DIM,
-            # max_seq_len=hyperparams.SEQ_LENGTH,
             dropout=hyperparams.DROPOUT_RATE,
         ).to(DEVICE)
 
@@ -99,6 +97,7 @@ class MyModel:
         print("Saving vocab data...")
         with open(vocab_path, 'wb') as f:
             pickle.dump(self.char_vocab, f)
+        
 
     @classmethod
     def load_test_data(cls, fname):
@@ -119,6 +118,7 @@ class MyModel:
     def run_train(self, work_dir):
         print('x_train len: {}'.format(len(self.X_train)))
         # your code here
+        self.model.init_with_vocab(self.char_vocab)
         # Create embeddings based on text
         y_train_list = list(torch.unbind(self.y_train, dim=0))
         y_dev_list = list(torch.unbind(self.y_dev, dim=0))
@@ -166,11 +166,11 @@ class MyModel:
         model_path = os.path.join(work_dir, 'model.checkpoint')
         saved_model_state_dict = torch.load(model_path, map_location=DEVICE)
         my_model = MyModel()
-        my_model.model.load_state_dict(saved_model_state_dict)
         vocab_path = os.path.join(work_dir, 'vocab.pt')
         with open(vocab_path, 'rb') as f:
             self.char_vocab = pickle.load(f)
-
+        my_model.model.init_with_vocab(self.char_vocab)
+        my_model.model.load_state_dict(saved_model_state_dict)
         return my_model
 
 

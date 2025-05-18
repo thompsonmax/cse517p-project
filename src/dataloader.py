@@ -183,7 +183,10 @@ def unicode_code_points_to_vocab(data: List[torch.Tensor]) -> set[int]:
 def truncate_vocab_to_size(vocab: set[int], max_size: int) -> List[int]:
     """Truncates the vocab to a specified size."""
     # We use the last index of the vocab as the "unknown" character
-    trunc_max_size = max_size - 1
+    trunc_max_size = max_size - 2
+    # Let first 2 indices be UNK_CHAR and PADDING_CHAR
+    result_vocab = [hyperparams.UNK_CHAR, hyperparams.PADDING_CHAR]
+
     if len(vocab) > trunc_max_size:
         sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
         truncated_vocab = sorted_vocab[:trunc_max_size]
@@ -191,8 +194,9 @@ def truncate_vocab_to_size(vocab: set[int], max_size: int) -> List[int]:
     else:
         # Simply convert set to list
         truncated_vocab = list(vocab)
+    result_vocab.extend(truncated_vocab)
         
-    return truncated_vocab
+    return result_vocab
 
 def convert_y_to_vocab_indices(data: List[torch.Tensor], vocab: List[int], vocab_size: int) -> List[torch.Tensor]:
     """Converts the code points in Y to indices in the vocab. If a char is not
@@ -209,7 +213,7 @@ def convert_y_to_vocab_indices(data: List[torch.Tensor], vocab: List[int], vocab
             if code_point in vocab_to_idx:
                 idx = vocab_to_idx[code_point]
             else:
-                idx = vocab_size - 1  # UNK_CHAR
+                idx = hyperparams.UNK_CHAR_IDX  # UNK_CHAR
                 unk_chars_inc += 1
             # index_to_freq_dist[idx] += 1
             # print(f"Code point {code_point} -> index {idx}")

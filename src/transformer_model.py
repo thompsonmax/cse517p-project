@@ -4,6 +4,7 @@ import math
 from typing import List
 import hyperparams
 from transformers import AutoTokenizer
+from typing import Dict
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model: int, max_len: int = 5000, dropout: float = 0.1):
@@ -30,66 +31,45 @@ class PositionalEncoding(nn.Module):
         return self.dropout(x)
 
 class CharacterTransformer(nn.Module):
-    def __init__(self, output_vocab_size, embed_dim, nhead, num_decoder_layers,
+    def __init__(self,
+                 embed_dim, nhead, num_decoder_layers,
                  dim_feedforward, dropout=0.1):
         super().__init__()
-        self.tokenizer = AutoTokenizer.from_pretrained(hyperparams.TOKENIZER_MODEL) 
-        self.tokenizer_vocab_size = self.tokenizer.vocab_size
+
         self.embed_dim = embed_dim
-        self.padding_char = self.tokenizer.pad_token
-        self.padding_idx = self.tokenizer.pad_token_id
-        self.output_vocab_size = output_vocab_size
+        self.nhead = nhead
+        self.num_decoder_layers = num_decoder_layers
+        self.dim_feedforward = dim_feedforward
+        self.dropout = dropout
 
-        print(f"Padding char: {self.padding_char}")
-        print(f"Padding idx: {self.padding_idx}")
-        print(f"Tokenizer vocab size: {self.tokenizer_vocab_size}")
-        print(f"Output vocab size: {self.output_vocab_size}")
+    def init_with_vocab(self, vocab: List[str]):
+        self.char_vocab_size = len(vocab)
+        char_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
 
-        self.embedding = nn.Embedding(self.tokenizer_vocab_size, embed_dim, self.padding_idx)
+        self.char_to_idx = char_to_idx_map
+        self.char_padding_idx = hyperparams.PADDING_CHAR_IDX
+        self.char_unk_idx = hyperparams.UNK_CHAR_IDX
 
-        self.pos_encoder = PositionalEncoding(embed_dim, hyperparams.SEQ_LENGTH, dropout)
+        print(f"Char vocab size: {self.char_vocab_size}")
 
-        # Decoder-only setup
-        # decoder_layer = nn.TransformerDecoderLayer(
-        #     d_model=d_model,
-        #     nhead=nhead,
-        #     dim_feedforward=dim_feedforward,
-        #     dropout=dropout,
-        #     batch_first=True # Crucial: Input shape (batch, seq, feature)
-        # )
-        # decoder_norm = nn.LayerNorm(d_model)
-        # self.transformer_decoder = nn.TransformerDecoder(
-        #     decoder_layer,
-        #     num_layers=num_decoder_layers,
-        #     norm=decoder_norm # Apply normalization after the stack
-        # )
+        self.embedding = nn.Embedding(self.char_vocab_size, self.embed_dim, padding_idx=self.char_padding_idx)
+
+        self.pos_encoder = PositionalEncoding(self.embed_dim, hyperparams.SEQ_LENGTH, self.dropout)
 
         self.decoder_layers = nn.ModuleList([
             nn.TransformerDecoderLayer(
-                d_model=embed_dim,
-                nhead=nhead,
-                dim_feedforward=dim_feedforward,
-                dropout=dropout,
-                batch_first=True
-            ) for _ in range(num_decoder_layers)
+                d_model=self.embed_dim,
+                nhead=self.nhead,
+                dim_feedforward=self.dim_feedforward,
+                dropout=self.dropout,
+                batch_first=True,
+                norm_first=True,  # Pre-LN (LayerNorm before attention/FFN)
+            ) for _ in range(self.num_decoder_layers)
         ])
         # Optional: LayerNorm after the stack of layers, maybe try removing?
-        self.decoder_norm = nn.LayerNorm(embed_dim)
+        self.decoder_norm = nn.LayerNorm(self.embed_dim)
 
-        # transformer_layer_config = nn.TransformerEncoderLayer(
-        #     d_model=embed_dim,          # Dimensionality of the input/output features
-        #     nhead=nhead,              # Number of attention "heads" in multi-head attention
-        #     dim_feedforward=dim_feedforward, # Dimension of the point-wise feed-forward network
-        #     dropout=dropout,
-        #     batch_first=True,         # Input/output tensors will have batch size as the first dimension
-        #     norm_first=True           # Apply LayerNorm before attention/FFN (Pre-LN, often more stable)
-        # )
-        # self.transformer_decoder_blocks = nn.TransformerEncoder( # A stack of transformer layers
-        #     encoder_layer=transformer_layer_config,
-        #     num_layers=num_decoder_layers, # Number of transformer layers   
-        # )
-
-        self.fc_out = nn.Linear(embed_dim, output_vocab_size) # Final linear layer to project to vocab size
+        self.fc_out = nn.Linear(self.embed_dim, self.char_vocab_size) # Final linear layer to project to vocab size
 
         self._init_weights()
 
@@ -99,24 +79,37 @@ class CharacterTransformer(nn.Module):
         self.fc_out.bias.data.zero_()
         self.fc_out.weight.data.uniform_(-initrange, initrange)
 
-    def forward(self, src: List[str]) -> torch.Tensor:
+    def forward(self, src: List[str], device='cpu') -> torch.Tensor:
         # src shape: (batch_size, seq_len)
-        # src_padding_mask shape: (batch_size, seq_len) -> True where padded
 
-        # embedding and Positional Encoding
-        # embedded shape: (batch_size, seq_len, d_model)
-        # print(f"src shape: {src.shape}")
-        tokenized_src = self.tokenizer(src,
-                return_tensors='pt',
-                padding='max_length',
-                truncation=True,
-                max_length=hyperparams.SEQ_LENGTH)
-        # tokenized_src shape: (batch_size, seq_len)
-        # print(f"tokenized_src shape: {tokenized_src['input_ids'].shape}")
+        batch_input_ids = []
+        for text in src:
+            char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in text]
 
-        input_ids = tokenized_src['input_ids'].to(self.embedding.weight.device)
-        attention_mask = tokenized_src['attention_mask'].to(self.embedding.weight.device)
-        embedded_src = self.embedding(input_ids)
+            if len(char_indices) > hyperparams.SEQ_LENGTH:
+                char_indices = char_indices[:hyperparams.SEQ_LENGTH]
+            
+            batch_input_ids.append(torch.tensor(char_indices, dtype=torch.long))
+
+        # Pad the sequences to the same length
+        padded_input_ids_list = []
+        for ids_tensor in batch_input_ids:
+            current_len = ids_tensor.size(0)
+            if current_len < hyperparams.SEQ_LENGTH:
+                padding_needed = hyperparams.SEQ_LENGTH - current_len
+                padding_tensor = torch.full((padding_needed,), self.char_padding_idx, dtype=torch.long)
+                padded_ids = torch.cat((ids_tensor, padding_tensor), dim=0)
+                padded_input_ids_list.append(padded_ids)
+            else: # Already truncated or exactly SEQ_LENGTH
+                padded_input_ids_list.append(ids_tensor)
+
+        input_ids = torch.stack(padded_input_ids_list).to(device)
+        # Create attention mask: 1 for non-padding tokens, 0 for padding
+        attention_mask = (input_ids != self.char_padding_idx).long().to(device)
+
+        # input_ids = tokenized_src['input_ids'].to(self.embedding.weight.device)
+        # attention_mask = tokenized_src['attention_mask'].to(self.embedding.weight.device)
+        embedded_src = self.embedding(input_ids) * math.sqrt(self.embed_dim)
         # Maybe scale the embeddings?
         # embedded_src = embedded_src * (self.d_model**0.5)
 
@@ -128,7 +121,7 @@ class CharacterTransformer(nn.Module):
         # tgt_mask shape: (seq_len, seq_len)
         seq_len = input_ids.size(1)
         # print(f"seq_len: {seq_len}")
-        device = input_ids.device
+        # device = input_ids.device
         causal_mask = nn.Transformer.generate_square_subsequent_mask(seq_len, device=device)
 
         padding_mask = (attention_mask == 0)
@@ -147,10 +140,10 @@ class CharacterTransformer(nn.Module):
         for layer in self.decoder_layers:
             decoder_output = layer(
                 tgt=decoder_output,
-                memory=decoder_output,  # <--- Pass the current sequence as memory
+                memory=None,  # No memory for decoder-only
                 tgt_mask=causal_mask,
                 tgt_key_padding_mask=padding_mask,
-                memory_key_padding_mask=padding_mask # Use the same padding mask for memory
+                # memory_key_padding_mask=padding_mask # Use the same padding mask for memory
             )
         # decoder_output = embedded_src # Start with the embedded source
         # for layer in self.decoder_layers:

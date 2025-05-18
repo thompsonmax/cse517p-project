@@ -228,7 +228,7 @@ def evaluate_transformer(
 
             # padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
 
-            logits = model(X_batch)
+            logits = model(X_batch, device=device)
             # print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
@@ -351,7 +351,7 @@ def train_transformer(
             # print(f"X_batch: f{X_batch}")
             # for x in X_batch:
             #     print(f"x len {len(x)}")
-            logits = model(X_batch)
+            logits = model(X_batch, device=device)
             # print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
