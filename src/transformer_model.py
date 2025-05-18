@@ -83,7 +83,7 @@ class CharacterTransformer(nn.Module):
 
     def forward(self, src: List[str], device='cpu') -> torch.Tensor:
         # src shape: (batch_size, seq_len)
-        print(f"src shape: {len(src)}")
+        # print(f"src shape: {len(src)}")
 
         batch_input_ids = []
         for text in src:

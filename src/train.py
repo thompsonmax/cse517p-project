@@ -277,10 +277,10 @@ def evaluate_transformer(
     preds_flat = preds_flat.to('cpu')
     y_dev_flat = y_dev_flat.to('cpu')
     y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
-    print(preds_flat.shape)
-    print(y_dev_flat.shape)
-    print(preds_flat[0])
-    print(y_dev_flat[0])
+    # print(preds_flat.shape)
+    # print(y_dev_flat.shape)
+    # print(preds_flat[0])
+    # print(y_dev_flat[0])
     print("Computing metrics...")
     accuracy = ACCURACY_FN(preds_flat, y_dev_flat)
     print("Accuracy: %.4f" % (accuracy))
@@ -381,7 +381,7 @@ def train_transformer(
 
             train_epoch_loss += batch_loss.item()
             # print("Batch loss: %.4f" % (batch_loss.item()))
-            break
+            # break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
