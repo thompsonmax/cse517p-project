@@ -10,6 +10,7 @@ from data_importer import DataImporter
 import dataloader
 from model import FFNN
 import transformer_model
+import decoder_only_model
 import train
 from predict import predict, predict_transformer
 from pprint import pprint
@@ -28,7 +29,7 @@ class MyModel:
 
     def __init__(self):
         print(f"Using pytorch version: {torch.__version__}")
-        self.model = transformer_model.CharacterTransformer(
+        self.model = decoder_only_model.DecoderCharacterTransformer(
             embed_dim=hyperparams.EMBED_DIM,
             nhead=hyperparams.N_HEADS,
             num_decoder_layers=hyperparams.N_DECODER_LAYERS,
