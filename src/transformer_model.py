@@ -56,18 +56,20 @@ class CharacterTransformer(nn.Module):
 
         self.pos_encoder = PositionalEncoding(self.embed_dim, hyperparams.SEQ_LENGTH, self.dropout)
 
-        self.decoder_layers = nn.ModuleList([
-            nn.TransformerDecoderLayer(
-                d_model=self.embed_dim,
-                nhead=self.nhead,
-                dim_feedforward=self.dim_feedforward,
-                dropout=self.dropout,
-                batch_first=True,
-                norm_first=True,  # Pre-LN (LayerNorm before attention/FFN)
-            ) for _ in range(self.num_decoder_layers)
-        ])
-        # Optional: LayerNorm after the stack of layers, maybe try removing?
-        self.decoder_norm = nn.LayerNorm(self.embed_dim)
+        transformer_layer_config = nn.TransformerEncoderLayer(
+            d_model=self.embed_dim,          # Dimensionality of the input/output features
+            nhead=self.nhead,              # Number of attention "heads" in multi-head attention
+            dim_feedforward=self.dim_feedforward, # Dimension of the point-wise feed-forward network
+            dropout=self.dropout,
+            batch_first=True,         # Input/output tensors will have batch size as the first dimension
+            norm_first=True           # Apply LayerNorm before attention/FFN (Pre-LN, often more stable)
+        )
+        self.transformer_decoder_blocks = nn.TransformerEncoder( # A stack of transformer layers
+            encoder_layer=transformer_layer_config,
+            num_layers=self.num_decoder_layers, # Number of transformer layers   
+        )
+
+        self.decoder_norm = nn.LayerNorm(self.embed_dim) # Layer normalization after transformer blocks
 
         self.fc_out = nn.Linear(self.embed_dim, self.char_vocab_size) # Final linear layer to project to vocab size
 
@@ -136,16 +138,16 @@ class CharacterTransformer(nn.Module):
         # transformer_output = self.transformer_decoder_blocks(embedded_src, mask=causal_mask)
         # decoder_output shape: (batch_size, seq_len, d_model)
 
-        decoder_output = embedded_src # Start with the embedded source
-        for layer in self.decoder_layers:
-            decoder_output = layer(
-                tgt=decoder_output,
-                memory=None,  # No memory for decoder-only
-                tgt_mask=causal_mask,
-                tgt_key_padding_mask=padding_mask,
-                # memory_key_padding_mask=padding_mask # Use the same padding mask for memory
-            )
         # decoder_output = embedded_src # Start with the embedded source
+        # for layer in self.decoder_layers:
+        #     decoder_output = layer(
+        #         tgt=decoder_output,
+        #         memory=None,  # No memory for decoder-only
+        #         tgt_mask=causal_mask,
+        #         tgt_key_padding_mask=padding_mask,
+        #         # memory_key_padding_mask=padding_mask # Use the same padding mask for memory
+        #     )
+        # # decoder_output = embedded_src # Start with the embedded source
         # for layer in self.decoder_layers:
         #     # Pass only tgt (current output), tgt_mask (causal), and tgt_key_padding_mask (padding)
         #     # No 'memory' is passed, so the layer skips cross-attention.
@@ -155,6 +157,11 @@ class CharacterTransformer(nn.Module):
         #         tgt_mask=causal_mask,
         #         tgt_key_padding_mask=padding_mask
         #     )
+        decoder_output = self.transformer_decoder_blocks(
+            embedded_src,
+            mask=causal_mask,
+            src_key_padding_mask=padding_mask
+        )
         decoder_output = self.decoder_norm(decoder_output)
         # final Linear Layer
         # logits shape: (batch_size, seq_len, vocab_size)
