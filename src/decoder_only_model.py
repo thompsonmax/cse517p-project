@@ -46,7 +46,7 @@ class DecoderCharacterTransformer(nn.Module):
         self.char_vocab_size = len(vocab)
         char_to_idx_map = {char: idx for idx, char in enumerate(vocab)}
 
-        self.char_to_idx = char_to_idx_map
+        self.code_point_to_idx = char_to_idx_map
         self.char_padding_idx = hyperparams.PADDING_CHAR_IDX
         self.char_unk_idx = hyperparams.UNK_CHAR_IDX
 
@@ -100,7 +100,7 @@ class DecoderCharacterTransformer(nn.Module):
         batch_input_ids = []
         for text in src:
             code_points = [ord(char) for char in text]
-            char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in code_points]
+            char_indices = [self.code_point_to_idx.get(char, self.char_unk_idx) for char in code_points]
 
             if len(char_indices) > hyperparams.SEQ_LENGTH:
                 char_indices = char_indices[:hyperparams.SEQ_LENGTH]
@@ -176,10 +176,10 @@ class DecoderCharacterTransformer(nn.Module):
         for layer in self.decoder_layers:
             decoder_output = layer(
                 tgt=decoder_output,
-                memory=decoder_output,  # <--- Pass the current sequence as memory
+                memory=None,  # <--- Pass the current sequence as memory
                 tgt_mask=causal_mask,
                 tgt_key_padding_mask=padding_mask,
-                memory_key_padding_mask=padding_mask # Use the same padding mask for memory
+                # memory_key_padding_mask=padding_mask # Use the same padding mask for memory
             )
         decoder_output = self.decoder_norm(decoder_output)
         # final Linear Layer
