@@ -8,6 +8,7 @@ from torchmetrics import Precision, Recall, F1Score, Accuracy
 import hyperparams
 import time
 import random
+import os
 
 # for evaluating dev performance
 ACCURACY_FN = Accuracy(num_classes=hyperparams.CHAR_VOCAB_SIZE, task="multiclass", average="macro", top_k=3)
@@ -307,6 +308,7 @@ def train_transformer(
     y_train: List[torch.Tensor],
     X_dev: List[str],
     y_dev: List[torch.Tensor],
+    work_dir: str = ".",
     lr: float = 1e-3,
     n_epochs: int = 10,
     device: str = "cpu",
@@ -377,6 +379,10 @@ def train_transformer(
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
+
+        # Write the model to disk every epoch
+        model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
+        torch.save(model.state_dict(), model_path)
 
         eval_metrics = evaluate_transformer(model, X_dev, y_dev, device=device)
         dev_metrics.append(eval_metrics)

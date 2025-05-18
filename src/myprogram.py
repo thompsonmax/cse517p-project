@@ -128,6 +128,7 @@ class MyModel:
             y_train=y_train_list,
             X_dev=self.X_dev,
             y_dev=y_dev_list,
+            work_dir=work_dir,
             lr=1e-3,
             n_epochs=10,
             device=DEVICE,
