@@ -333,6 +333,8 @@ def train_transformer(
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
+    # scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', factor=0.5, patience=2)
 
     train_losses = [] # List to store the training losses
     dev_metrics = [] # List to store the validation metrics
@@ -358,12 +360,16 @@ def train_transformer(
             # print(f"X_batch: f{X_batch}")
             # for x in X_batch:
             #     print(f"x len {len(x)}")
+            # print(f"y_batch HEAD: ", y_batch[:3][:10])
             logits = model(X_batch, device=device)
             # print(f"Logits shape: {logits.shape}")
 
             batch_size, seq_len, vocab_size = logits.shape
             reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
             reshaped_y = y_batch.view(batch_size * seq_len)
+            # print("Reshaped y HEAD: ", reshaped_y[:10])
+            # _, reshaped_logits_top_k = torch.topk(reshaped_logits[:10], k=3, dim=-1)
+            # print("Reshaped logits HEAD: ", reshaped_logits_top_k[:10])
 
             batch_loss = loss_fn(reshaped_logits, reshaped_y)
 
@@ -375,7 +381,7 @@ def train_transformer(
 
             train_epoch_loss += batch_loss.item()
             # print("Batch loss: %.4f" % (batch_loss.item()))
-            # break
+            break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)

@@ -67,6 +67,11 @@ class MyModel:
             print(f'y_train len: {len(self.y_train)}')
             print(f'X_dev len: {len(self.X_dev)}')
             print(f'y_dev len: {len(self.y_dev)}')
+            print(f"Vocab 3: {chr(self.char_vocab[3])}")
+            print(f"Vocab 4: {chr(self.char_vocab[4])}")
+            print(f"Vocab 8: {chr(self.char_vocab[8])}")
+            print(f"Vocab 11: {chr(self.char_vocab[11])}")
+            print(f"Vocab 14: {chr(self.char_vocab[14])}")
             return
         common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
         common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=4, max_samples=hyperparams.DATASET_MAX_SAMPLES)

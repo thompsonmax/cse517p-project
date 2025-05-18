@@ -64,7 +64,7 @@ class CharacterTransformer(nn.Module):
             batch_first=True,         # Input/output tensors will have batch size as the first dimension
             norm_first=True           # Apply LayerNorm before attention/FFN (Pre-LN, often more stable)
         )
-        self.transformer_decoder_blocks = nn.TransformerEncoder( # A stack of transformer layers
+        self.transformer_encoder = nn.TransformerEncoder( # A stack of transformer layers
             encoder_layer=transformer_layer_config,
             num_layers=self.num_decoder_layers, # Number of transformer layers   
         )
@@ -83,10 +83,12 @@ class CharacterTransformer(nn.Module):
 
     def forward(self, src: List[str], device='cpu') -> torch.Tensor:
         # src shape: (batch_size, seq_len)
+        print(f"src shape: {len(src)}")
 
         batch_input_ids = []
         for text in src:
-            char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in text]
+            code_points = [ord(char) for char in text]
+            char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in code_points]
 
             if len(char_indices) > hyperparams.SEQ_LENGTH:
                 char_indices = char_indices[:hyperparams.SEQ_LENGTH]
@@ -106,6 +108,7 @@ class CharacterTransformer(nn.Module):
                 padded_input_ids_list.append(ids_tensor)
 
         input_ids = torch.stack(padded_input_ids_list).to(device)
+        # print(f"input_ids head: {input_ids[:3][:10]}")
         # Create attention mask: 1 for non-padding tokens, 0 for padding
         attention_mask = (input_ids != self.char_padding_idx).long().to(device)
 
@@ -157,7 +160,7 @@ class CharacterTransformer(nn.Module):
         #         tgt_mask=causal_mask,
         #         tgt_key_padding_mask=padding_mask
         #     )
-        decoder_output = self.transformer_decoder_blocks(
+        decoder_output = self.transformer_encoder(
             embedded_src,
             mask=causal_mask,
             src_key_padding_mask=padding_mask
