@@ -172,11 +172,12 @@ class DecoderCharacterTransformer(nn.Module):
         #         tgt_mask=causal_mask,
         #         tgt_key_padding_mask=padding_mask
         #     )
+        memory = torch.zeros_like(embedded_src)
         decoder_output = embedded_src # Start with the embedded source
         for layer in self.decoder_layers:
             decoder_output = layer(
-                tgt=decoder_output,
-                memory=None,  # <--- Pass the current sequence as memory
+                decoder_output,
+                memory=memory,
                 tgt_mask=causal_mask,
                 tgt_key_padding_mask=padding_mask,
                 # memory_key_padding_mask=padding_mask # Use the same padding mask for memory
