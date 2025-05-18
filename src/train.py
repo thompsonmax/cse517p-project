@@ -193,6 +193,11 @@ def evaluate_transformer(
 
     # Create a DataLoader for the validation data
     # Subsample tensors
+    vocab_size = model.char_vocab_size
+    ACCURACY_FN = Accuracy(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
+    PRECISION_FN = Precision(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)    
+    RECALL_FN = Recall(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
+    F1_FN = F1Score(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
     rand_indices = random.sample(range(len(X_dev)), len(X_dev) // 500)
     print(f"Original shape {len(X_dev)}, {len(y_dev)}")
     X_dev = [X_dev[i] for i in rand_indices]
@@ -271,10 +276,10 @@ def evaluate_transformer(
     preds_flat = preds_flat.to('cpu')
     y_dev_flat = y_dev_flat.to('cpu')
     y_dev_flat = y_dev_flat[:preds_flat.shape[0]].to('cpu')
-    # print(preds_flat.shape)
-    # print(y_dev_flat.shape)
-    # print(preds_flat[0])
-    # print(y_dev_flat[0])
+    print(preds_flat.shape)
+    print(y_dev_flat.shape)
+    print(preds_flat[0])
+    print(y_dev_flat[0])
     print("Computing metrics...")
     accuracy = ACCURACY_FN(preds_flat, y_dev_flat)
     print("Accuracy: %.4f" % (accuracy))
@@ -368,7 +373,7 @@ def train_transformer(
 
             train_epoch_loss += batch_loss.item()
             # print("Batch loss: %.4f" % (batch_loss.item()))
-            # break
+            break
 
         train_epoch_loss /= len(train_dataloader)
         train_losses.append(train_epoch_loss)
