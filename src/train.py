@@ -176,12 +176,15 @@ def train_transformer(
     """
     # Transfer the model to device
     model.to(device)
+    # Print number of parameters in the model
+    num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"Number of parameters in the model: {num_params}")
 
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.75)
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=0.5)
 
     train_losses = [] # List to store the training losses
     dev_metrics = [] # List to store the validation metrics
@@ -193,7 +196,7 @@ def train_transformer(
         train_epoch_loss = 0.0
         j = 0
         start_time = time.time()
-        print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_lr()}")
+        print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()}")
         for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
