@@ -1,0 +1,5 @@
+Results
+
+Epoch: 4, Train Loss: 1.7973, Dev Loss: 1.7765, Dev Accuracy: 0.4889, Dev Precision: 0.5381, Dev Recall: 0.4889, Dev F1: 0.4552
+
+Link to weights file: https://drive.google.com/file/d/1Y1XKxY67cJB2is15nzCoomDPAhiNKR4u/view?usp=drive_link
