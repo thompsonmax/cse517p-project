@@ -49,7 +49,7 @@ def predict(
 
             # Perform a forward pass through the network and compute loss
             X_batch = X_batch[0].to(device) # Transfer the data to device
-            y_batch_preds = model(X_batch).squeeze(-1)
+            y_batch_preds = model(X_batch, device=device).squeeze(-1)
 
             # Compute the predictions and store them in the preds list.
             # Remember to apply a sigmoid function to the logits if binary classification and argmax if multiclass classification
@@ -108,7 +108,7 @@ def predict_transformer(
 
             # Perform a forward pass through the network and compute loss
             X_batch = X_batch[0].to(device) # Transfer the data to device
-            y_batch_preds = model(X_batch).squeeze(-1)
+            y_batch_preds = model(X_batch, device=device).squeeze(-1)
 
             padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
 
@@ -119,16 +119,30 @@ def predict_transformer(
            
             logits_last = logits[:, -1, :].view(batch_size, vocab_size)
             y_batch_preds = torch.softmax(logits_last, dim=-1)
+
+            indices_to_filter = [ hyperparams.PADDING_CHAR_IDX, hyperparams.UNK_CHAR_IDX ]
+            space_idx = model.char_to_idx.get(ord(' '), -1)
+            if space_idx != -1:
+                indices_to_filter.append(space_idx)
+            for idx in indices_to_filter:
+                y_batch_preds[:, idx] = float('-inf')
+
+            valid_indices = torch.isfinite(y_batch_preds).sum(dim=1)
+            min_valid_indices = valid_indices.min().item()
+            # maybe need to handle this case to avoid breaking but for now just see it even happens?
+            if min_valid_indices < 3:
+                raise Exception('odd edge case: at least 1 batch has less than 3 options?')
+
+            predictions_per_batch = []
             pred_top_3_batch = torch.topk(y_batch_preds, 3).indices
-            pred_top_3_batch_str = []
-            for pred_top_3 in pred_top_3_batch:
-                # Convert top 3 preds to unicode characters
-                pred_top3_list = []
-                for p in pred_top_3:
-                    pred_top3_list.append(vocab[p])
-                pred_top3_str = ''.join(pred_top3_list)
-                pred_top_3_batch_str.append(pred_top3_str)
-            preds.extend(pred_top_3_batch_str)
+            for batch in pred_top_3_batch:
+                predicted_chars = []
+                for idx in batch:
+                    code_point = vocab[idx.item()]
+                    predicted_chars.append(chr(code_point))
+                predicted_chars = ''.join(predicted_chars)
+                predictions_per_batch.append(predicted_chars)
+            preds.extend(predictions_per_batch)
 
     # print(preds)
     return preds

@@ -150,6 +150,9 @@ class MyModel:
     def run_pred(self, data):
         # your code here
         # test_cache_path = 
+        if self.char_vocab is None:
+            raise Exception("vocab isn't set!")
+
         X_test = dataloader.preprocess_transformer_test(data, device=DEVICE)
         preds = predict_transformer(
             X_test,
@@ -163,21 +166,22 @@ class MyModel:
         # your code here
         model_path = os.path.join(work_dir, 'model.checkpoint')
         vocab_path = os.path.join(work_dir, 'vocab.pt')
-        torch.save(model.model.state_dict(), model_path)
+        torch.save(self.model.state_dict(), model_path)
         with open(vocab_path, 'wb') as f:
             pickle.dump(self.char_vocab, f)
 
     @classmethod
-    def load(self, cls, work_dir):
+    def load(cls, work_dir):
         # your code here
         # this particular model has nothing to load, but for demonstration purposes we will load a blank file
         model_path = os.path.join(work_dir, 'model.checkpoint')
+        print(f'Model path: {model_path}')
         saved_model_state_dict = torch.load(model_path, map_location=DEVICE)
         my_model = MyModel()
         vocab_path = os.path.join(work_dir, 'vocab.pt')
         with open(vocab_path, 'rb') as f:
-            self.char_vocab = pickle.load(f)
-        my_model.model.init_with_vocab(self.char_vocab)
+            my_model.char_vocab = pickle.load(f)
+        my_model.model.init_with_vocab(my_model.char_vocab)
         my_model.model.load_state_dict(saved_model_state_dict)
         return my_model
 
