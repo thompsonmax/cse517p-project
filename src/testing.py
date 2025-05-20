@@ -13,8 +13,15 @@ def generate_test_data(data_files="common_corpus_10/subset_1_1*.parquet", record
     common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files=data_files)
     common_corpus_sampled = common_corpus.sample(n=records, random_state=random_state)
     samples = common_corpus_sampled['text'].tolist()
-    x, y = dataloader.sample_sequences(samples)
-    y = [ chr(c) for c in y ]
+
+    x = []
+    y = []
+    for sample in samples:
+        sample = sample.replace('\n', ' ')
+        if len(sample) <= 51:
+            continue
+        x.append(sample[:50])
+        y.append(sample[51])
     return x, y
 
 if __name__ == "__main__":
@@ -29,7 +36,7 @@ if __name__ == "__main__":
     print('Generating test data')
     test_data, labels = generate_test_data()
     print('Making predictions')
-    pred = model.run_pred(test_data)
+    pred = model.run_pred(test_data, verbose=True)
 
     is_correct = [labels[i] in pred[i] for i in range(len(pred))]
 

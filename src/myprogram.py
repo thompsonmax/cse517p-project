@@ -137,7 +137,7 @@ class MyModel:
             vocab_size=len(self.char_vocab),
             work_dir=work_dir,
             lr=1e-3,
-            n_epochs=1,
+            n_epochs=10,
             device=DEVICE,
             verbose=True,
         )
@@ -147,7 +147,7 @@ class MyModel:
         print(final_dev_metrics)
         
 
-    def run_pred(self, data):
+    def run_pred(self, data, verbose=False):
         # your code here
         # test_cache_path = 
         if self.char_vocab is None:
@@ -159,7 +159,8 @@ class MyModel:
             X_test,
             self.model,
             vocab=self.char_vocab,
-            device=DEVICE
+            device=DEVICE,
+            verbose=verbose,
         )
         return preds
 
