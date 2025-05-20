@@ -122,9 +122,13 @@ def predict_transformer(
             y_batch_preds = torch.softmax(logits_last, dim=-1)
 
             indices_to_filter = [ hyperparams.PADDING_CHAR_IDX, hyperparams.UNK_CHAR_IDX ]
-            space_idx = model.char_to_idx.get(ord(' '), -1)
-            if space_idx != -1:
-                indices_to_filter.append(space_idx)
+            indices_to_validate = [' ', '\n']
+
+            for char_to_check in indices_to_validate:
+                idx = model.char_to_idx.get(ord(char_to_check), -1)
+                if idx != -1:
+                    indices_to_filter.append(idx)
+
             for idx in indices_to_filter:
                 y_batch_preds[:, idx] = float('-inf')
 
