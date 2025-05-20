@@ -75,6 +75,7 @@ def predict_transformer(
     vocab: List[str],
     batch_size: int = 32,
     device: str = "cpu",
+    verbose=False,
     **kwargs,
 ):
 
@@ -91,8 +92,8 @@ def predict_transformer(
     - List[int]: List of predicted labels
     """
     # Create a DataLoader for the input data
-    dataset = TensorDataset(data)
-    embedding_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+    #dataset = TensorDataset(data)
+    embedding_dataloader = DataLoader(data, batch_size=batch_size, shuffle=False)
     # embedding_dataloader = create_dataloader(embeddings, batch_size=batch_size, shuffle=False) # Note that we don't shuffle the data for evaluation.
 
     # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
@@ -107,17 +108,17 @@ def predict_transformer(
         for X_batch in embedding_dataloader: # Iterate over the batches of the validation data
 
             # Perform a forward pass through the network and compute loss
-            X_batch = X_batch[0].to(device) # Transfer the data to device
+            #X_batch = X_batch.to(device) # Transfer the data to device
             y_batch_preds = model(X_batch, device=device).squeeze(-1)
 
-            padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
+            padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX)
 
-            logits = model(X_batch, src_padding_mask=padding_mask)
+            #logits = model(X_batch, src_padding_mask=padding_mask)
 
-            batch_size, seq_len, vocab_size = logits.shape
+            batch_size, seq_len, vocab_size = y_batch_preds.shape
             # reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
            
-            logits_last = logits[:, -1, :].view(batch_size, vocab_size)
+            logits_last = y_batch_preds[:, -1, :].view(batch_size, vocab_size)
             y_batch_preds = torch.softmax(logits_last, dim=-1)
 
             indices_to_filter = [ hyperparams.PADDING_CHAR_IDX, hyperparams.UNK_CHAR_IDX ]
@@ -130,8 +131,8 @@ def predict_transformer(
             valid_indices = torch.isfinite(y_batch_preds).sum(dim=1)
             min_valid_indices = valid_indices.min().item()
             # maybe need to handle this case to avoid breaking but for now just see it even happens?
-            if min_valid_indices < 3:
-                raise Exception('odd edge case: at least 1 batch has less than 3 options?')
+            if verbose and min_valid_indices < 3:
+                print('odd edge case: at least 1 batch has less than 3 options?')
 
             predictions_per_batch = []
             pred_top_3_batch = torch.topk(y_batch_preds, 3).indices

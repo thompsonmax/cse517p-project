@@ -137,7 +137,7 @@ class MyModel:
             vocab_size=len(self.char_vocab),
             work_dir=work_dir,
             lr=1e-3,
-            n_epochs=10,
+            n_epochs=1,
             device=DEVICE,
             verbose=True,
         )
@@ -153,7 +153,8 @@ class MyModel:
         if self.char_vocab is None:
             raise Exception("vocab isn't set!")
 
-        X_test = dataloader.preprocess_transformer_test(data, device=DEVICE)
+        #X_test = dataloader.preprocess_transformer(data, device=DEVICE, char_vocab=self.char_vocab)
+        X_test = data
         preds = predict_transformer(
             X_test,
             self.model,
