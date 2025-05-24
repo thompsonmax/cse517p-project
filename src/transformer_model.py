@@ -3,7 +3,6 @@ import torch
 import math
 from typing import List
 import hyperparams
-from transformers import AutoTokenizer
 from typing import Dict
 
 class PositionalEncoding(nn.Module):

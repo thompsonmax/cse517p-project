@@ -1,6 +1,6 @@
 # VOCAB_SIZE=50000 # Number of words in embedding
 EMBED_DIM=512 # Dimension of embedding
-N_HEADS=12 # Number of attention heads
+N_HEADS=8 # Number of attention heads
 N_DECODER_LAYERS=12 # Number of decoder layers
 TRANS_LAYERS=3 # Number of transformer layers
 FF_DIM=2048 # Dimension of FF 

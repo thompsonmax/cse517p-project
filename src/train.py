@@ -222,7 +222,7 @@ def train_transformer(
 
             batch_loss.backward()
 
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=0.5)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
 
             optimizer.step()
 
