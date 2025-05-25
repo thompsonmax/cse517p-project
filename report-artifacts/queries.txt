@@ -1,0 +1,18 @@
+# run these queries using the hugging face data studio
+
+# identify stack overflow bias in spoken languages
+SELECT COUNT(*) FROM train 
+WHERE language_type != 'Code'  
+  and identifier LIKE '%stackoverflow.com%'
+
+# get the number of tokens for each represented language
+SELECT 
+    language,
+    SUM(token_count) AS total_tokens
+FROM 
+    train
+WHERE language_type != 'Code'
+GROUP BY 
+    language
+ORDER BY 
+    total_tokens DESC;
