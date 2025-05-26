@@ -1,4 +1,4 @@
-# run these queries using the hugging face data studio
+# can use these queries to get an understanding of the dataset, but it only queries the first N rows
 
 # identify stack overflow bias in spoken languages
 SELECT COUNT(*) FROM train 
