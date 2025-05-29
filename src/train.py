@@ -12,8 +12,7 @@ import os
 
 def evaluate_transformer(
     model: nn.Module,
-    X_dev: List[str],
-    y_dev: List[torch.Tensor],
+    dev_dataloader: DataLoader,
     vocab_size: int,
     device: str = "cpu",
 ) -> Dict[str, float]:
@@ -38,12 +37,11 @@ def evaluate_transformer(
     PRECISION_FN = Precision(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)    
     RECALL_FN = Recall(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
     F1_FN = F1Score(num_classes=vocab_size, task="multiclass", average="macro", top_k=3)
-    rand_indices = random.sample(range(len(X_dev)), hyperparams.EVAL_TOTAL_SIZE)
-    print(f"Original shape {len(X_dev)}, {len(y_dev)}")
-    X_dev = [X_dev[i] for i in rand_indices]
-    y_dev = [y_dev[i] for i in rand_indices]
-    print(f"Downsampled shape {len(X_dev)}, {len(y_dev)}")
-    dev_dataloader = dataloader.create_transformer_dataloader((X_dev, y_dev), batch_size=hyperparams.EVAL_BATCH_SIZE, shuffle=False)
+    # rand_indices = random.sample(range(len(X_dev)), hyperparams.EVAL_TOTAL_SIZE)
+    # print(f"Original shape {len(X_dev)}, {len(y_dev)}")
+    # X_dev = [X_dev[i] for i in rand_indices]
+    # y_dev = [y_dev[i] for i in rand_indices]
+    # print(f"Downsampled shape {len(X_dev)}, {len(y_dev)}")
 
     # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
     model.eval()
@@ -60,16 +58,19 @@ def evaluate_transformer(
     start_time = time.time()
     all_batch_logits_flat = []
     all_batch_y_batch = []
+    evaluation_steps = 6 if device == 'cpu' else 21
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
-        for X_batch, y_batch in dev_dataloader: # Iterate over the batches of the validation data
+        for i in range(evaluation_steps): # Iterate over the batches of the validation data
+            batch = next(dev_dataloader) # Get the next batch from the dataloader
+            X_batch = batch['input_ids'] # Get the input ids from the batch
+            y_batch = batch['target_ids'] # Get the target ids from the batch
             if j % 3 == 0:
-                print(f"Eval step: {j} / {len(dev_dataloader)}, took {time.time() - start_time:.2f} seconds")
+                print(f"Eval step: {j}, took {time.time() - start_time:.2f} seconds")
                 start_time = time.time()
             j += 1
-            # if j % 500 != 0:
-            #     continue
             # num_processed += X_batch.shape[0]
             # Perform a forward pass through the network and compute loss
+            X_batch = X_batch.to(device) # Transfer the data to device
             y_batch = y_batch.to(device) # Transfer the data to device
             # YOUR CODE HERE
 
@@ -109,7 +110,7 @@ def evaluate_transformer(
 
             val_loss += batch_loss.item() # Accumulate the loss. Note that we use .item() to extract the loss value from the tensor.
             # break
-    val_loss /= len(dev_dataloader) # Compute the average loss
+    val_loss /= j # Compute the average loss
     # preds = torch.cat(preds, dim=0).to(device) # Convert the list of predictions to a tensor
     # y_dev = torch.stack(y_dev).to(device)
     # print(preds.shape)
@@ -150,10 +151,7 @@ def evaluate_transformer(
 
 def train_transformer(
     model: nn.Module,
-    X_train: List[str],
-    y_train: List[torch.Tensor],
-    X_dev: List[str],
-    y_dev: List[torch.Tensor],
+    dataloader: DataLoader,
     vocab_size: int,
     work_dir: str = ".",
     lr: float = 1e-3,
@@ -180,6 +178,9 @@ def train_transformer(
     num_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"Number of parameters in the model: {num_params}")
 
+    # Create dataloader iterator
+    dataloader = iter(dataloader)
+
     loss_fn = nn.CrossEntropyLoss()
 
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
@@ -191,15 +192,20 @@ def train_transformer(
 
     print("Running training...")
     for epoch in range(n_epochs): # Iterate over the epochs
-        train_dataloader = dataloader.create_transformer_dataloader((X_train, y_train), batch_size=hyperparams.BATCH_SIZE, shuffle=True)
         model.train() # Set the model to training mode
         train_epoch_loss = 0.0
+        epoch_data_size = 0
         j = 0
         start_time = time.time()
+        epoch_steps = 10 if device == 'cpu' else 10000
         print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()}")
-        for X_batch, y_batch in train_dataloader: # Iterate over the batches of the training data
+        for i in range(epoch_steps): # Iterate over the batches of the training data
+            batch = next(dataloader)
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
+            X_batch = batch['input_ids'] # Get the input ids from the batch
+            y_batch = batch['target_ids'] # Get the target ids from the batch
+            X_batch = X_batch.to(device) # Transfer the data to device
             y_batch = y_batch.to(device) # Transfer the data to device
 
             # padding_mask = (X_batch == hyperparams.PADDING_CHAR_IDX).to(device)
@@ -226,24 +232,30 @@ def train_transformer(
 
             optimizer.step()
 
+            epoch_data_size += X_batch.shape[0]
             train_epoch_loss += batch_loss.item()
 
             if j % 100 == 0 or device == "cpu": # Print every 100 steps, or every line if CPU because it's hella slow
-                print(f"Train step: {j} / {len(train_dataloader)}, took {time.time() - start_time:.2f} seconds, iteration loss: {batch_loss.item()}, epoch avg loss: {train_epoch_loss / (j + 1):.4f}")
+                print(f"Train step: {j} / {epoch_steps}, took {time.time() - start_time:.2f} seconds, iteration loss: {batch_loss.item()}, epoch avg loss: {train_epoch_loss / (j + 1):.4f}")
                 start_time = time.time()
-            # print("Batch loss: %.4f" % (batch_loss.item()))
-            # if j % 25 == 0:
-            #     break
+            # if j % 10000 == 0 or device == "cpu":
+            #     # Checkpoint model to disk every 10000 steps
+            #     scheduler.step()
+            #     model_path = os.path.join(work_dir, f"model_epoch_{epoch+1}_step_{j}.pt")
+            #     torch.save(model.state_dict(), model_path)
+            #     # Evaluate the model on the validation set every 10000 steps
+            #     eval_metrics = evaluate_transformer(model, dataloader, vocab_size, device=device)
+            #     if verbose:
+            #         print("Step: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (j, train_epoch_loss / (j + 1), eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"]))
 
-        train_epoch_loss /= len(train_dataloader)
+        train_epoch_loss /= epoch_data_size
         train_losses.append(train_epoch_loss)
-        scheduler.step()
 
         # Write the model to disk every epoch
         model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), model_path)
 
-        eval_metrics = evaluate_transformer(model, X_dev, y_dev, vocab_size, device=device)
+        eval_metrics = evaluate_transformer(model, dataloader, vocab_size, device=device)
         dev_metrics.append(eval_metrics)
 
         if verbose:

@@ -15,6 +15,7 @@ from pprint import pprint
 import errno
 import hyperparams
 import pickle
+import streaming_dataloader
 
 # UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
@@ -44,65 +45,43 @@ class MyModel:
 
     @classmethod
     def load_training_data(self, work_dir, force=False):
-        train_dir = work_dir + "/train_embeddings"
-        dev_dir = work_dir + "/dev_embeddings"
-        X_train_path = work_dir + "/train_embeddings/x_embeddings.pt"
-        y_train_path = work_dir + "/train_embeddings/y_embeddings.pt"
-        X_dev_path = work_dir + "/dev_embeddings/x_embeddings.pt"
-        y_dev_path = work_dir + "/dev_embeddings/y_embeddings.pt"
-        vocab_path = work_dir + "/train_embeddings/vocab.pt"
+        vocab_dir = os.path.join(work_dir, 'vocab')
+        vocab_path = os.path.join(vocab_dir, 'vocab.pt')
 
-        if os.path.isdir(train_dir) and os.path.isdir(dev_dir) and not force:
-            print('Loading cached training data')
-            with open(X_train_path, 'rb') as f:
-                self.X_train = pickle.load(f)
-            self.y_train = torch.load(y_train_path)
-            with open(X_dev_path, 'rb') as f:
-                self.X_dev = pickle.load(f)
-            self.y_dev = torch.load(y_dev_path)
+        if os.path.isdir(vocab_dir) and not force:
             with open(vocab_path, 'rb') as f:
                 self.char_vocab = pickle.load(f)
-            print(f'X_train len: {len(self.X_train)}')
-            print(f'y_train len: {len(self.y_train)}')
-            print(f'X_dev len: {len(self.X_dev)}')
-            print(f'y_dev len: {len(self.y_dev)}')
             print(f"Vocab 3: {chr(self.char_vocab[3])}")
             print(f"Vocab 4: {chr(self.char_vocab[4])}")
             print(f"Vocab 8: {chr(self.char_vocab[8])}")
             print(f"Vocab 11: {chr(self.char_vocab[11])}")
             print(f"Vocab 14: {chr(self.char_vocab[14])}")
-            return
-        common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-        common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=4, max_samples=hyperparams.DATASET_MAX_SAMPLES)
-        print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-        train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)
+        else:
+            common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
+            common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=2, max_samples=hyperparams.DATASET_MAX_SAMPLES)
+            print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
+            print(f'stratfied data head {common_corpus_stratified[10:]}')
+            # train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)
 
-        train_dataset = train_dataset['text'].tolist()
-        dev_dataset = dev_dataset['text'].tolist()
-
-        print('preparing training dataset')
-        self.X_train, self.y_train, self.char_vocab = dataloader.preprocess_transformer(train_dataset, device=DEVICE)
-        print(f'X_train len: {len(self.X_train)}')
-        print(f'y_train len: {len(self.y_train)}')
-        print('preparing dev dataset')
-        self.X_dev, self.y_dev, _ = dataloader.preprocess_transformer(dev_dataset, device=DEVICE, char_vocab=self.char_vocab)
-        print(f'X_dev len: {len(self.X_dev)}')
-        print(f'y_dev len: {len(self.y_dev)}')
-        print("Saving training data...")
-        self.mkdir(self, train_dir)
-        self.mkdir(self, dev_dir)
-        with open(X_train_path, 'wb') as f:
-            pickle.dump(self.X_train, f)
-        torch.save(self.y_train, y_train_path)
-        print("Saving dev data...")
-        with open(X_dev_path, 'wb') as f:
-            pickle.dump(self.X_dev, f)
-        torch.save(self.y_dev, y_dev_path)
-        print("Saving vocab data...")
-        with open(vocab_path, 'wb') as f:
-            pickle.dump(self.char_vocab, f)
+            data = common_corpus_stratified['text'].tolist()
+            self.char_vocab = dataloader.preprocess_transformer(data, device=DEVICE)
+            # print(f'X_train len: {len(self.X_train)}')
+            # print(f'y_train len: {len(self.y_train)}')
+            # print('preparing dev dataset')
+            # self.X_dev, self.y_dev, _ = dataloader.preprocess_transformer(dev_dataset, device=DEVICE, char_vocab=self.char_vocab)
+            # print(f'X_dev len: {len(self.X_dev)}')
+            # print(f'y_dev len: {len(self.y_dev)}')
+            print("Saving vocab data...")
+            self.mkdir(self, vocab_dir)
+            with open(vocab_path, 'wb') as f:
+                pickle.dump(self.char_vocab, f)
         
-
+        print(f"Vocabulary has size {len(self.char_vocab)}")
+        # Create streaming dataloader given vocab
+        print("Creating streaming dataloader...")
+        vocab2idx = {v: k for k, v in enumerate(self.char_vocab)}
+        self.streaming_dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+        
     @classmethod
     def load_test_data(cls, fname):
         # your code here
@@ -120,18 +99,12 @@ class MyModel:
                 f.write('{}\n'.format(p))
 
     def run_train(self, work_dir):
-        print('x_train len: {}'.format(len(self.X_train)))
+        # print('x_train len: {}'.format(len(self.X_train)))
         # your code here
         self.model.init_with_vocab(self.char_vocab)
-        # Create embeddings based on text
-        y_train_list = list(torch.unbind(self.y_train, dim=0))
-        y_dev_list = list(torch.unbind(self.y_dev, dim=0))
         train_losses, final_dev_metrics = train.train_transformer(
             model=self.model,
-            X_train=self.X_train,
-            y_train=y_train_list,
-            X_dev=self.X_dev,
-            y_dev=y_dev_list,
+            dataloader=self.streaming_dataloader,
             vocab_size=len(self.char_vocab),
             work_dir=work_dir,
             lr=1e-3,

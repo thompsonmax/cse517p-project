@@ -16,16 +16,16 @@ DATASET_NAME = 'wikimedia/wikipedia'
 DESIRED_TOP_LANGUAGES = [
         'en',  # English
         'de',  # German
-        'fr',  # French
-        'es',  # Spanish
-        'ru',  # Russian
-        'ja',  # Japanese
-        'it',  # Italian
-        'zh',  # Chinese
-        'pt',  # Portuguese
-        'ar',  # Arabic
-        'pl',  # Polish
-        'nl',  # Dutch
+        # 'fr',  # French
+        # 'es',  # Spanish
+        # 'ru',  # Russian
+        # 'ja',  # Japanese
+        # 'it',  # Italian
+        # 'zh',  # Chinese
+        # 'pt',  # Portuguese
+        # 'ar',  # Arabic
+        # 'pl',  # Polish
+        # 'nl',  # Dutch
         # 'ceb', # Cebuano (often large by article count due to bots, content quality varies)
         # Uncomment to get better language coverage
         # 'sv',  # Swedish

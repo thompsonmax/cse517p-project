@@ -80,33 +80,33 @@ class CharacterTransformer(nn.Module):
         self.fc_out.bias.data.zero_()
         self.fc_out.weight.data.uniform_(-initrange, initrange)
 
-    def forward(self, src: List[str], device='cpu') -> torch.Tensor:
+    def forward(self, src: torch.LongTensor, device='cpu') -> torch.Tensor:
         # src shape: (batch_size, seq_len)
         # print(f"src shape: {len(src)}")
 
-        batch_input_ids = []
-        for text in src:
-            code_points = [ord(char) for char in text]
-            char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in code_points]
+        # batch_input_ids = []
+        # for text in src:
+        #     code_points = [ord(char) for char in text]
+        #     char_indices = [self.char_to_idx.get(char, self.char_unk_idx) for char in code_points]
 
-            if len(char_indices) > hyperparams.SEQ_LENGTH:
-                char_indices = char_indices[:hyperparams.SEQ_LENGTH]
+        #     if len(char_indices) > hyperparams.SEQ_LENGTH:
+        #         char_indices = char_indices[:hyperparams.SEQ_LENGTH]
             
-            batch_input_ids.append(torch.tensor(char_indices, dtype=torch.long))
+        #     batch_input_ids.append(torch.tensor(char_indices, dtype=torch.long))
 
-        # Pad the sequences to the same length
-        padded_input_ids_list = []
-        for ids_tensor in batch_input_ids:
-            current_len = ids_tensor.size(0)
-            if current_len < hyperparams.SEQ_LENGTH:
-                padding_needed = hyperparams.SEQ_LENGTH - current_len
-                padding_tensor = torch.full((padding_needed,), self.char_padding_idx, dtype=torch.long)
-                padded_ids = torch.cat((ids_tensor, padding_tensor), dim=0)
-                padded_input_ids_list.append(padded_ids)
-            else: # Already truncated or exactly SEQ_LENGTH
-                padded_input_ids_list.append(ids_tensor)
+        # # Pad the sequences to the same length
+        # padded_input_ids_list = []
+        # for ids_tensor in batch_input_ids:
+        #     current_len = ids_tensor.size(0)
+        #     if current_len < hyperparams.SEQ_LENGTH:
+        #         padding_needed = hyperparams.SEQ_LENGTH - current_len
+        #         padding_tensor = torch.full((padding_needed,), self.char_padding_idx, dtype=torch.long)
+        #         padded_ids = torch.cat((ids_tensor, padding_tensor), dim=0)
+        #         padded_input_ids_list.append(padded_ids)
+        #     else: # Already truncated or exactly SEQ_LENGTH
+        #         padded_input_ids_list.append(ids_tensor)
 
-        input_ids = torch.stack(padded_input_ids_list).to(device)
+        input_ids = src.to(device)
         # print(f"input_ids head: {input_ids[:3][:10]}")
         # Create attention mask: 1 for non-padding tokens, 0 for padding
         attention_mask = (input_ids != self.char_padding_idx).long().to(device)

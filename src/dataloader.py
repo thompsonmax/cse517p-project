@@ -32,32 +32,28 @@ def create_test(data: List[str], device='cpu') -> torch.Tensor:
 def preprocess_transformer(data: List[str], device='cpu', char_vocab=None) -> tuple[List[str], torch.Tensor, set[int]]:
     print("Performing unicode normalization...")
     data = unicode_normalization(data)
-    print("Splitting into x and y text sequences...")
-    x_text, y_text = splitXY(data)
-    print("Converting text to unicode code points...")
+    # print("Splitting into x and y text sequences...")
+    # x_text, y_text = splitXY(data)
+    # print("Converting text to unicode code points...")
     data = text_to_unicode_code_points(data)
-    if char_vocab is not None:
-        print("Using provided vocab...")
-        vocab = char_vocab
-    else:
-        print("Generating output char vocabulary...")
-        vocab = unicode_code_points_to_vocab(data)
-        print(f"Original char vocabulary size: {len(vocab)}")
-        print(f"Truncating vocabulary to max size {hyperparams.CHAR_VOCAB_SIZE} ...")
-        vocab = truncate_vocab_to_size(vocab, hyperparams.CHAR_VOCAB_SIZE)
-        print(f"Vocabulary size after truncation: {len(vocab)}")
+    print("Generating output char vocabulary...")
+    vocab = unicode_code_points_to_vocab(data)
+    print(f"Original char vocabulary size: {len(vocab)}")
+    print(f"Truncating vocabulary to max size {hyperparams.CHAR_VOCAB_SIZE} ...")
+    vocab = truncate_vocab_to_size(vocab, hyperparams.CHAR_VOCAB_SIZE)
+    print(f"Vocabulary size after truncation: {len(vocab)}")
     # print("Splitting data into x and y...")
     # x_data, y_data = splitXY(data)
-    print("Converting y text to unicode code points...")
-    y_data = text_to_unicode_code_points(y_text)
-    print("Converting y to vocab indices (or unk idx)...")
-    y_data = convert_y_to_vocab_indices(y_data, vocab, hyperparams.CHAR_VOCAB_SIZE)
-    # x_tensor = torch.stack(x_data)
-    y_tensor = torch.stack(y_data)
-    print(f"Generated x text of length {len(x_text)}")
-    print(f"Generated y tensor of shape {y_tensor.shape}")
-    print(f"Generated vocab of size {len(vocab)}")
-    return x_text, y_tensor, vocab
+    # print("Converting y text to unicode code points...")
+    # y_data = text_to_unicode_code_points(y_text)
+    # print("Converting y to vocab indices (or unk idx)...")
+    # y_data = convert_y_to_vocab_indices(y_data, vocab, hyperparams.CHAR_VOCAB_SIZE)
+    # # x_tensor = torch.stack(x_data)
+    # y_tensor = torch.stack(y_data)
+    # print(f"Generated x text of length {len(x_text)}")
+    # print(f"Generated y tensor of shape {y_tensor.shape}")
+    # print(f"Generated vocab of size {len(vocab)}")
+    return vocab
 
 def preprocess_transformer_test(data: List[str], device='cpu') -> torch.Tensor:
     print("Performing unicode normalization...")
@@ -177,6 +173,8 @@ def unicode_code_points_to_vocab(data: List[torch.Tensor]) -> set[int]:
     for s in data:
         code_points = s.tolist()
         for code_point in code_points:
+            # if code_point not in code_point_to_freq:
+            #     print(code_point)
             code_point_to_freq[code_point] += 1
     return code_point_to_freq
 
