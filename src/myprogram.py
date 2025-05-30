@@ -57,14 +57,9 @@ class MyModel:
             print(f"Vocab 11: {chr(self.char_vocab[11])}")
             print(f"Vocab 14: {chr(self.char_vocab[14])}")
         else:
-            common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-            common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=2, max_samples=hyperparams.DATASET_MAX_SAMPLES)
-            print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
-            print(f'stratfied data head {common_corpus_stratified[10:]}')
-            # train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)
-
-            data = common_corpus_stratified['text'].tolist()
-            self.char_vocab = dataloader.preprocess_transformer(data, device=DEVICE)
+            vocab_dataset = streaming_dataloader.create_pure_code_points_iterable_datasets()
+            self.char_vocab = dataloader.generate_vocab_from_code_points(vocab_dataset)
+            print(f"Generated vocab of size: {len(self.char_vocab)}")
             # print(f'X_train len: {len(self.X_train)}')
             # print(f'y_train len: {len(self.y_train)}')
             # print('preparing dev dataset')

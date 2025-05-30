@@ -109,6 +109,110 @@ TARGET_LANG_COUNT = len(DESIRED_TOP_LANGUAGES)
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def create_pure_code_points_iterable_datasets() -> IterableDataset:
+
+    logger.info(f"Fetching available configurations for {DATASET_NAME}...")
+    try:
+        # For wikimedia/wikipedia, trust_remote_code might be needed if it uses a custom loading script
+        available_configurations = get_dataset_config_names(DATASET_NAME, trust_remote_code=True)
+    except Exception as e:
+        raise ValueError(f"Failed to fetch dataset configurations for {DATASET_NAME}. Please check the dataset name or your internet connection. Error: {e}")
+
+    logger.info(f"Found {len(available_configurations)} raw configurations.")
+
+    logger.info(f"First few available configurations: {available_configurations[:10]}")
+    logger.info(f"A '20231101.en' style config generally means DATE.LANG_CODE")
+
+    # Find the latest available dump for ALL languages first
+    latest_configs_for_all_langs = {}
+    for config_name in available_configurations:
+        parts = config_name.split('.', 1)
+        if len(parts) == 2:
+            date_str, lang_code = parts
+            # Normalize lang_code (e.g., if there are variants like zh-hans, zh-hant, map to 'zh' if desired)
+            # For wikimedia/wikipedia, lang codes are usually simple e.g. 'zh', 'en'
+            if lang_code not in latest_configs_for_all_langs or date_str > latest_configs_for_all_langs[lang_code]['date']:
+                latest_configs_for_all_langs[lang_code] = {'date': date_str, 'config': config_name, 'lang': lang_code}
+        else:
+            # Handle configs that don't fit the date.lang pattern (e.g., just 'simple')
+            # These are less common for the main language dumps of wikimedia/wikipedia
+            lang_code = config_name
+            if lang_code not in latest_configs_for_all_langs: # Avoid overwriting if a dated version is preferred
+                latest_configs_for_all_langs[lang_code] = {'date': 'nodate', 'config': config_name, 'lang': lang_code}
+
+    logger.info(f"Identified latest dumps for {len(latest_configs_for_all_langs)} unique language codes.")
+
+    # Now, filter these latest dumps to include only our desired top languages
+    # and take up to TARGET_LANG_COUNT
+    processed_languages_to_load = []
+    loaded_lang_codes = set()
+
+    for lang_code_to_check in DESIRED_TOP_LANGUAGES:
+        if lang_code_to_check in latest_configs_for_all_langs:
+            if lang_code_to_check not in loaded_lang_codes: # Ensure unique languages
+                processed_languages_to_load.append(latest_configs_for_all_langs[lang_code_to_check]['config'])
+                loaded_lang_codes.add(lang_code_to_check)
+                if len(processed_languages_to_load) >= TARGET_LANG_COUNT:
+                    break # Stop once we have enough languages
+
+
+    logger.info(f"Will attempt to load {len(processed_languages_to_load)} unique language configurations (latest available dump).")
+    logger.info(f"Example configurations to be loaded: {processed_languages_to_load}")
+
+
+    # 2. Load and process each language dataset (using streaming)
+    all_language_datasets_streamed = {}
+
+    for lang_config_name in processed_languages_to_load:
+        # Ensure we only try to load valid configurations obtained
+        try:
+            logger.info(f"Attempting to load '{DATASET_NAME}' with configuration '{lang_config_name}' in streaming mode...")
+            # The wikipedia dataset typically has a 'train' split.
+            # Some datasets might require specifying a specific version or trust_remote_code=True
+            dataset_stream = load_dataset(
+                DATASET_NAME,
+                name=lang_config_name,
+                streaming=True,
+                split="train",
+            )
+            all_language_datasets_streamed[lang_config_name] = dataset_stream
+            logger.info(f"Successfully initiated stream for {lang_config_name}.")
+            # Sleep for 5 seconds to avoid 429s from the API
+            time.sleep(1)
+
+
+        except Exception as e:
+            logger.error(f"Could not load language {lang_config_name}: {e}")
+            raise ValueError(f"Failed to load dataset for {lang_config_name}. Please check the configuration name or your internet connection. Error: {e}")
+            # logger.warning(f"Skipping language: {lang_config_name}")
+
+    logger.info(f"\nSuccessfully set up streams for {len(all_language_datasets_streamed)} languages.")
+    logger.info("You can now iterate through `all_language_datasets_streamed` dictionary,")
+    logger.info("where keys are language configuration names and values are iterable dataset streams.")
+
+    interleaved_dataset = interleave_datasets(list(all_language_datasets_streamed.values()))
+    logger.info("Interleaved dataset created successfully.")
+    def map_to_vocab_indices(example):
+        # print(f"Mapping example: {example['text'][:10]}...")  # Print first 10 characters of the text
+        code_points = []
+        for char in unicodedata.normalize('NFC', example['text']):
+            # print(char)
+            code_point = ord(char)
+            # print(ord(char))
+            code_points.append(code_point)
+
+        output_ids = {
+            'code_points': code_points
+        }
+        # print(f"Mapped input_ids: {output_ids['input_ids'][:10]}...")  # Print first 10 mapped IDs
+        return output_ids
+    interleaved_dataset = interleaved_dataset.map(
+        map_to_vocab_indices
+    )
+    interleaved_dataset = interleaved_dataset.shuffle(seed=42)
+    return interleaved_dataset
+
+
 def create_streaming_dataloader(vocab2idx: dict) -> DataLoader:
 
     logger.info(f"Fetching available configurations for {DATASET_NAME}...")
@@ -178,7 +282,7 @@ def create_streaming_dataloader(vocab2idx: dict) -> DataLoader:
             all_language_datasets_streamed[lang_config_name] = dataset_stream
             logger.info(f"Successfully initiated stream for {lang_config_name}.")
             # Sleep for 5 seconds to avoid 429s from the API
-            time.sleep(5)
+            time.sleep(1)
 
 
         except Exception as e:
