@@ -12,5 +12,4 @@ packaging
 pandas
 pillow
 propcache
-sentence-transformers
 datasets
