@@ -1,18 +1,19 @@
 # VOCAB_SIZE=50000 # Number of words in embedding
+# Results in a model with 635706865 params
 EMBED_DIM=2048 # Dimension of embedding
 N_HEADS=16 # Number of attention heads
-N_DECODER_LAYERS=16 # Number of decoder layers
+N_DECODER_LAYERS=12 # Number of decoder layers
 TRANS_LAYERS=3 # Number of transformer layers
 FF_DIM=8192 # Dimension of FF 
 DROPOUT_RATE=0.1
 LR=0.001
-LR_DECAY_PER_EPOCH=0.7
+LR_DECAY_PER_EPOCH=0.8
 NUM_EPOCHS=10
 DATASET_MAX_SAMPLES=50
 SEQ_LENGTH=128
 BLOCK_SIZE=128
 STEP_SIZE=192
-BATCH_SIZE=64
+BATCH_SIZE=32
 EVAL_BATCH_SIZE=32
 EVAL_TOTAL_SIZE=512
 CHAR_VOCAB_SIZE=25000 # Low 20000s seems about right
