@@ -58,7 +58,7 @@ class MyModel:
             print(f"Vocab 14: {chr(self.char_vocab[14])}")
         else:
             common_corpus: pd.DataFrame = DataImporter.load_common_corpus(data_files="common_corpus_10/subset_100_*.parquet")
-            common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=2, max_samples=hyperparams.DATASET_MAX_SAMPLES)
+            common_corpus_stratified = DataImporter.sample_across_languages(common_corpus, minimum_samples=1, max_samples=hyperparams.DATASET_MAX_SAMPLES)
             print(f'stratified by language corpus size: {common_corpus_stratified.shape}')
             print(f'stratfied data head {common_corpus_stratified[10:]}')
             # train_dataset, dev_dataset = DataImporter.divide_corpus_into_datasets(common_corpus_stratified)

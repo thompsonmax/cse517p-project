@@ -58,7 +58,7 @@ def evaluate_transformer(
     start_time = time.time()
     all_batch_logits_flat = []
     all_batch_y_batch = []
-    evaluation_steps = 9
+    evaluation_steps = hyperparams.EVAL_STEPS
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for i in range(evaluation_steps): # Iterate over the batches of the validation data
             batch = next(dev_dataloader) # Get the next batch from the dataloader
@@ -197,7 +197,7 @@ def train_transformer(
         epoch_data_size = 0
         j = 0
         start_time = time.time()
-        epoch_steps = 10 if device == 'cpu' else 50000
+        epoch_steps = 10 if device == 'cpu' else hyperparams.EPOCH_STEPS
         print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()}")
         for i in range(epoch_steps): # Iterate over the batches of the training data
             batch = next(dataloader)

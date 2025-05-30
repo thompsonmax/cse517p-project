@@ -30,22 +30,22 @@ DESIRED_TOP_LANGUAGES = [
         # Uncomment to get better language coverage
         'sv',  # Swedish
         'hin', # Hindi
-        # 'tr',  # Turkish
-        # 'vi',  # Vietnamese
-        # 'id',  # Indonesian
-        # 'ko',  # Korean
-        # 'fi',  # Finnish
-        # 'no',  # Norwegian
-        # 'da',  # Danish
-        # 'he',  # Hebrew
-        # 'uk',  # Ukrainian
-        # 'ro',  # Romanian
-        # 'cs',  # Czech
-        # 'hu',  # Hungarian
-        # 'bg',  # Bulgarian
-        # 'el',  # Greek
-        # 'th',  # Thai
-        # 'fa',  # Persian
+        'tr',  # Turkish
+        'vi',  # Vietnamese
+        'id',  # Indonesian
+        'ko',  # Korean
+        'fi',  # Finnish
+        'no',  # Norwegian
+        'da',  # Danish
+        'he',  # Hebrew
+        'uk',  # Ukrainian
+        'ro',  # Romanian
+        'cs',  # Czech
+        'hu',  # Hungarian
+        'bg',  # Bulgarian
+        'el',  # Greek
+        'th',  # Thai
+        'fa',  # Persian
         # 'sk',  # Slovak
         # 'lt',  # Lithuanian
         # 'sl',  # Slovenian
@@ -62,19 +62,19 @@ DESIRED_TOP_LANGUAGES = [
         # 'is',  # Icelandic
         # 'mt',  # Maltese
         # 'af',  # Afrikaans
-        # 'sw',  # Swahili
-        # 'tl',  # Tagalog
-        # 'bn',  # Bengali
-        # 'pa',  # Punjabi
-        # 'gu',  # Gujarati
-        # 'ta',  # Tamil
-        # 'te',  # Telugu
+        'sw',  # Swahili
+        'tl',  # Tagalog
+        'bn',  # Bengali
+        'pa',  # Punjabi
+        'gu',  # Gujarati
+        'ta',  # Tamil
+        'te',  # Telugu
         # 'kn',  # Kannada
         # 'ml',  # Malayalam
         # 'mr',  # Marathi
         # 'or',  # Odia
         # 'si',  # Sinhala
-        # 'ur',  # Urdu
+        'ur',  # Urdu
         # 'my',  # Burmese
         # 'km',  # Khmer
         # 'lo',  # Lao
