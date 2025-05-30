@@ -183,7 +183,7 @@ def train_transformer(
 
     loss_fn = nn.CrossEntropyLoss()
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=hyperparams.LR_DECAY_PER_EPOCH)
 
