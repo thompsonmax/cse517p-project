@@ -197,7 +197,7 @@ def train_transformer(
         epoch_data_size = 0
         j = 0
         start_time = time.time()
-        epoch_steps = 10 if device == 'cpu' else 10000
+        epoch_steps = 10 if device == 'cpu' else 50000
         print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()}")
         for i in range(epoch_steps): # Iterate over the batches of the training data
             batch = next(dataloader)
