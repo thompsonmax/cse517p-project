@@ -96,6 +96,7 @@ class MyModel:
         # print('x_train len: {}'.format(len(self.X_train)))
         # your code here
         self.model.init_with_vocab(self.char_vocab)
+        self.model.compile()
         train_losses, final_dev_metrics = train.train_transformer(
             model=self.model,
             vocab2idx=self.vocab2idx,
