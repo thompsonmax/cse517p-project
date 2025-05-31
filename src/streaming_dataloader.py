@@ -13,6 +13,7 @@ import time
 
 DATASET_NAME = 'wikimedia/wikipedia'
 
+# DESIRED_TOP_LANGUAGES = ['en']
 DESIRED_TOP_LANGUAGES = [
         'en',  # English
         'de',  # German

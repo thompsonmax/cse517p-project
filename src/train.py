@@ -9,10 +9,12 @@ import hyperparams
 import time
 import random
 import os
+import streaming_dataloader
 
 def evaluate_transformer(
     model: nn.Module,
     dev_dataloader: DataLoader,
+    vocab2idx,
     vocab_size: int,
     device: str = "cpu",
 ) -> Dict[str, float]:
@@ -61,7 +63,13 @@ def evaluate_transformer(
     evaluation_steps = hyperparams.EVAL_STEPS
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for i in range(evaluation_steps): # Iterate over the batches of the validation data
-            batch = next(dev_dataloader) # Get the next batch from the dataloader
+            try:
+                batch = next(dev_dataloader)
+            except StopIteration:
+                dev_dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+                dev_dataloader = iter(dev_dataloader)
+                batch = next(dev_dataloader)
+
             X_batch = batch['input_ids'] # Get the input ids from the batch
             y_batch = batch['target_ids'] # Get the target ids from the batch
             if j % 3 == 0:
@@ -151,7 +159,7 @@ def evaluate_transformer(
 
 def train_transformer(
     model: nn.Module,
-    dataloader: DataLoader,
+    vocab2idx,
     vocab_size: int,
     work_dir: str = ".",
     lr: float = 1e-3,
@@ -179,10 +187,12 @@ def train_transformer(
     print(f"Number of parameters in the model: {num_params}")
 
     # Create dataloader iterator
+    dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
     dataloader = iter(dataloader)
 
     loss_fn = nn.CrossEntropyLoss()
 
+    lr = hyperparams.LR
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=hyperparams.LR_DECAY_PER_EPOCH)
@@ -200,7 +210,12 @@ def train_transformer(
         epoch_steps = 10 if device == 'cpu' else hyperparams.EPOCH_STEPS
         print(f"Training epoch {epoch + 1} with learning rate {scheduler.get_last_lr()}")
         for i in range(epoch_steps): # Iterate over the batches of the training data
-            batch = next(dataloader)
+            try:
+                batch = next(dataloader)
+            except StopIteration:
+                dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+                dataloader = iter(dataloader)
+                batch = next(dataloader)
             j += 1
             optimizer.zero_grad()  # This is done to zero-out any existing gradients stored from previous steps
             X_batch = batch['input_ids'] # Get the input ids from the batch
@@ -257,7 +272,7 @@ def train_transformer(
         model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), model_path)
 
-        eval_metrics = evaluate_transformer(model, dataloader, vocab_size, device=device)
+        eval_metrics = evaluate_transformer(model, dataloader, vocab2idx, vocab_size, device=device)
         dev_metrics.append(eval_metrics)
 
         if verbose:

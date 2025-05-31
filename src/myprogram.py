@@ -74,8 +74,7 @@ class MyModel:
         print(f"Vocabulary has size {len(self.char_vocab)}")
         # Create streaming dataloader given vocab
         print("Creating streaming dataloader...")
-        vocab2idx = {v: k for k, v in enumerate(self.char_vocab)}
-        self.streaming_dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+        self.vocab2idx = {v: k for k, v in enumerate(self.char_vocab)}
         
     @classmethod
     def load_test_data(cls, fname):
@@ -99,7 +98,7 @@ class MyModel:
         self.model.init_with_vocab(self.char_vocab)
         train_losses, final_dev_metrics = train.train_transformer(
             model=self.model,
-            dataloader=self.streaming_dataloader,
+            vocab2idx=self.vocab2idx,
             vocab_size=len(self.char_vocab),
             work_dir=work_dir,
             lr=1e-3,
