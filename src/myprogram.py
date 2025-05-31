@@ -10,7 +10,7 @@ from data_importer import DataImporter
 import dataloader
 import transformer_model
 import train
-from predict import predict, predict_transformer
+from predict import predict_transformer
 from pprint import pprint
 import errno
 import hyperparams
@@ -146,7 +146,7 @@ class MyModel:
         print(f'Model path: {model_path}')
         saved_model_state_dict = torch.load(model_path, map_location=DEVICE)
         my_model = MyModel()
-        vocab_path = os.path.join(work_dir, 'vocab.pt')
+        vocab_path = os.path.join(work_dir, 'vocab/vocab.pt')
         with open(vocab_path, 'rb') as f:
             my_model.char_vocab = pickle.load(f)
         my_model.model.init_with_vocab(my_model.char_vocab)

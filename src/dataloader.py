@@ -12,6 +12,35 @@ MAX_SAMPLING_ATTEMPTS=5
 BAD_CHARS = set([32, 10])
 UNK_CHAR = '_'
 
+
+
+def preprocess_transformer(data: List[str], device='cpu', char_vocab=None) -> set[int]:
+    print("Performing unicode normalization...")
+    data = unicode_normalization(data)
+    # print("Splitting into x and y text sequences...")
+    # x_text, y_text = splitXY(data)
+    # print("Converting text to unicode code points...")
+    data = text_to_unicode_code_points(data)
+    print("Generating output char vocabulary...")
+    vocab = unicode_code_points_to_vocab(data)
+    print(f"Original char vocabulary size: {len(vocab)}")
+    print(f"Truncating vocabulary to max size {hyperparams.CHAR_VOCAB_SIZE} ...")
+    vocab = truncate_vocab_to_size(vocab, hyperparams.CHAR_VOCAB_SIZE)
+    print(f"Vocabulary size after truncation: {len(vocab)}")
+    # print("Splitting data into x and y...")
+    # x_data, y_data = splitXY(data)
+    # print("Converting y text to unicode code points...")
+    # y_data = text_to_unicode_code_points(y_text)
+    # print("Converting y to vocab indices (or unk idx)...")
+    # y_data = convert_y_to_vocab_indices(y_data, vocab, hyperparams.CHAR_VOCAB_SIZE)
+    # # x_tensor = torch.stack(x_data)
+    # y_tensor = torch.stack(y_data)
+    # print(f"Generated x text of length {len(x_text)}")
+    # print(f"Generated y tensor of shape {y_tensor.shape}")
+    # print(f"Generated vocab of size {len(vocab)}")
+    return vocab
+
+
 def generate_vocab_from_code_points(data) -> set[int]:
     print(data)
     MAX_ROWS = 10000
@@ -28,14 +57,56 @@ def generate_vocab_from_code_points(data) -> set[int]:
     return vocab
 
 
-def preprocess_transformer_test(data: List[str], device='cpu') -> torch.Tensor:
+def preprocess_transformer_test(data: List[str], vocab, device='cpu') -> torch.Tensor:
+    vocab2idx = {v: k for k, v in enumerate(vocab)}
     print("Performing unicode normalization...")
     data = unicode_normalization(data)
+    # print(data[0])
     print("Converting text to unicode code points...")
     data = text_to_unicode_code_points(data)
+    # print(data[0])
+    print("Converting code points to indices...")
+    data = code_points_to_indices(data, vocab2idx)
+    # print(data[0])
     print("Padding or truncating tensors...")
     data = pad_or_truncate_tensors(data, hyperparams.SEQ_LENGTH)
     return torch.stack(data)
+
+def code_points_to_indices(data: List[torch.Tensor], vocab2idx) -> List[torch.Tensor]:
+    # print(vocab2idx)
+    all_indices = []
+    for t in data:
+        local_indices = []
+        for code_point in t:
+            # print(code_point.item())
+            idx = vocab2idx.get(code_point.item(), hyperparams.UNK_CHAR_IDX)
+            # print(idx)
+            local_indices.append(idx)
+        local_indices = torch.LongTensor(local_indices)
+        all_indices.append(local_indices)
+    return all_indices
+
+
+
+class StringAndTensorDataset(torch.utils.data.Dataset):
+    def __init__(self, strings_x: List[str], tensors_y: List[torch.Tensor]):
+        """
+        Args:
+            strings_x (list of str): A list of input strings.
+            tensors_y (list of torch.Tensor): A list of corresponding target tensors.
+        """
+        if len(strings_x) != len(tensors_y):
+            raise ValueError("Input lists strings_x and tensors_y must have the same length.")
+        self.strings_x = strings_x
+        self.tensors_y = tensors_y
+
+    def __len__(self):
+        return len(self.strings_x)
+
+    def __getitem__(self, idx):
+        x = self.strings_x[idx]
+        y = self.tensors_y[idx]
+        return x, y
     
 
 def collate_fn(batch):
@@ -185,7 +256,7 @@ def pad_or_truncate_tensors(tensors: List[torch.Tensor], max_length: int) -> Lis
         res = None
         if tensor.shape[0] < max_length:
             padding = torch.full((max_length - len(tensor),), hyperparams.PADDING_CHAR_IDX, dtype=torch.long)
-            res = torch.cat([padding, tensor])
+            res = torch.cat([tensor, padding])
         else:
             num_to_truncate = tensor.shape[0] - max_length
             res = tensor[num_to_truncate:]

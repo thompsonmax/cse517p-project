@@ -11,64 +11,6 @@ import dataloader
 import hyperparams
 from typing import List, Dict
 
-def predict(
-    data: torch.Tensor,
-    model: nn.Module,
-    batch_size: int = 32,
-    device: str = "cpu",
-    **kwargs,
-):
-
-    """
-    Predicts the labels for the input sentences using the trained model.
-
-    Inputs:
-    - sentences: List of input sentences
-    - model: The trained FFNN model
-    - embedding_method: The embedding method used to embed the sentences. Can be "glove" or "st"
-    - batch_size: Batch size for prediction
-
-    Returns:
-    - List[int]: List of predicted labels
-    """
-    # Create a DataLoader for the input data
-    dataset = TensorDataset(data)
-    embedding_dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
-    # embedding_dataloader = create_dataloader(embeddings, batch_size=batch_size, shuffle=False) # Note that we don't shuffle the data for evaluation.
-
-    # Set the model to evaluation mode. Read more about why we need to do this here: https://stackoverflow.com/questions/60018578/what-does-model-eval-do-in-pytorch
-    model.eval()
-
-    # Transfer the model to device
-    model.to(device)
-
-    preds = [] # List to store the predictions. This will be used to compute the accuracy, precision, and recall scores.
-
-    with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
-        for X_batch in embedding_dataloader: # Iterate over the batches of the validation data
-
-            # Perform a forward pass through the network and compute loss
-            X_batch = X_batch[0].to(device) # Transfer the data to device
-            y_batch_preds = model(X_batch, device=device).squeeze(-1)
-
-            # Compute the predictions and store them in the preds list.
-            # Remember to apply a sigmoid function to the logits if binary classification and argmax if multiclass classification
-            # For binary classification, you can use a threshold of 0.5.
-            y_batch_preds = torch.softmax(y_batch_preds, dim=-1)
-            pred_top_3_batch = torch.topk(y_batch_preds, 3).indices
-            pred_top_3_batch_str = []
-            for pred_top_3 in pred_top_3_batch:
-                # Convert top 3 preds to unicode characters
-                pred_top3_list = []
-                for p in pred_top_3:
-                    pred_top3_list.append(chr(p))
-                pred_top3_str = ''.join(pred_top3_list)
-                pred_top_3_batch_str.append(pred_top3_str)
-            preds.extend(pred_top_3_batch_str)
-
-    # print(preds)
-    return preds
-
 def predict_transformer(
     data: torch.Tensor,
     model: nn.Module,
@@ -91,6 +33,10 @@ def predict_transformer(
     Returns:
     - List[int]: List of predicted labels
     """
+    data = dataloader.preprocess_transformer_test(data, vocab)
+
+    # print(data)
+
     # Create a DataLoader for the input data
     #dataset = TensorDataset(data)
     embedding_dataloader = DataLoader(data, batch_size=batch_size, shuffle=False)
@@ -106,7 +52,9 @@ def predict_transformer(
 
     with torch.no_grad(): # This is done to prevent PyTorch from storing gradients, which we don't need during evaluation (which saves a lot of memory and computation)
         for X_batch in embedding_dataloader: # Iterate over the batches of the validation data
-
+            
+            indices = find_first_zero_or_last_index(X_batch)
+            print(indices)
             # Perform a forward pass through the network and compute loss
             #X_batch = X_batch.to(device) # Transfer the data to device
             y_batch_preds = model(X_batch, device=device).squeeze(-1)
@@ -117,8 +65,15 @@ def predict_transformer(
 
             batch_size, seq_len, vocab_size = y_batch_preds.shape
             # reshaped_logits = logits.view(batch_size * seq_len, vocab_size)
+            indices = find_first_zero_or_last_index(X_batch)
+            indices = indices.view(batch_size, 1, 1)
+            indices = indices.expand(batch_size, 1, vocab_size)
            
-            logits_last = y_batch_preds[:, -1, :].view(batch_size, vocab_size)
+            # logits_last = y_batch_preds[:, -1, :].view(batch_size, vocab_size)
+            logits_last = torch.gather(y_batch_preds, 1, indices)
+
+            # Remove the singleton dimension
+            logits_last = logits_last.squeeze(1)
             y_batch_preds = torch.softmax(logits_last, dim=-1)
 
             indices_to_filter = [ hyperparams.PADDING_CHAR_IDX, hyperparams.UNK_CHAR_IDX ]
@@ -144,6 +99,7 @@ def predict_transformer(
                 predicted_chars = []
                 for idx in batch:
                     code_point = vocab[idx.item()]
+                    # print(chr(code_point))
                     predicted_chars.append(chr(code_point))
                 predicted_chars = ''.join(predicted_chars)
                 predictions_per_batch.append(predicted_chars)
@@ -151,3 +107,33 @@ def predict_transformer(
 
     # print(preds)
     return preds
+
+def find_first_zero_or_last_index(tensor: torch.Tensor) -> torch.Tensor:
+    """
+    Given a 2D PyTorch tensor, returns the first index of each row that starts with a 0,
+    or the last index of the row if no zeros exist in that row.
+
+    Args:
+        tensor (torch.Tensor): A 2D PyTorch tensor.
+
+    Returns:
+        torch.Tensor: A 1D tensor containing the indices for each row.
+    """
+    if tensor.ndim != 2:
+        raise ValueError("Input tensor must be 2-dimensional.")
+
+    num_rows, num_cols = tensor.shape
+    results = torch.zeros(num_rows, dtype=torch.long)
+
+    for i in range(num_rows):
+        row = tensor[i]
+        zero_indices = (row == 0).nonzero(as_tuple=True)[0]
+
+        if zero_indices.numel() > 0:
+            # If zeros exist, find the first one
+            results[i] = max(zero_indices[0] - 1, 0)
+        else:
+            # If no zeros exist, return the last index of the row
+            results[i] = num_cols - 1
+            
+    return results

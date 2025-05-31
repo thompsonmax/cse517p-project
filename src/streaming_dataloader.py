@@ -324,10 +324,9 @@ def create_streaming_dataloader(vocab2idx: dict) -> DataLoader:
 
     def _pad_sequence_helper(sequence: list, max_len: int, padding_value: int) -> list:
         padding_needed = max_len - len(sequence)
-        # Ensure padding_needed is not negative, though slicing should prevent oversized sequences.
         if padding_needed > 0:
             return sequence + ([padding_value] * padding_needed)
-        return sequence[:max_len] # Ensure sequence is not longer than max_len, though logic aims for exact
+        return sequence[:max_len]
 
     def create_source_target_next_token_pairs(example):
         # Randomly samples a sequence pair from the document
