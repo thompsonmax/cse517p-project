@@ -124,27 +124,20 @@ def create_pure_code_points_iterable_datasets() -> IterableDataset:
     logger.info(f"First few available configurations: {available_configurations[:10]}")
     logger.info(f"A '20231101.en' style config generally means DATE.LANG_CODE")
 
-    # Find the latest available dump for ALL languages first
     latest_configs_for_all_langs = {}
     for config_name in available_configurations:
         parts = config_name.split('.', 1)
         if len(parts) == 2:
             date_str, lang_code = parts
-            # Normalize lang_code (e.g., if there are variants like zh-hans, zh-hant, map to 'zh' if desired)
-            # For wikimedia/wikipedia, lang codes are usually simple e.g. 'zh', 'en'
             if lang_code not in latest_configs_for_all_langs or date_str > latest_configs_for_all_langs[lang_code]['date']:
                 latest_configs_for_all_langs[lang_code] = {'date': date_str, 'config': config_name, 'lang': lang_code}
         else:
-            # Handle configs that don't fit the date.lang pattern (e.g., just 'simple')
-            # These are less common for the main language dumps of wikimedia/wikipedia
             lang_code = config_name
             if lang_code not in latest_configs_for_all_langs: # Avoid overwriting if a dated version is preferred
                 latest_configs_for_all_langs[lang_code] = {'date': 'nodate', 'config': config_name, 'lang': lang_code}
 
     logger.info(f"Identified latest dumps for {len(latest_configs_for_all_langs)} unique language codes.")
 
-    # Now, filter these latest dumps to include only our desired top languages
-    # and take up to TARGET_LANG_COUNT
     processed_languages_to_load = []
     loaded_lang_codes = set()
 
@@ -161,7 +154,6 @@ def create_pure_code_points_iterable_datasets() -> IterableDataset:
     logger.info(f"Example configurations to be loaded: {processed_languages_to_load}")
 
 
-    # 2. Load and process each language dataset (using streaming)
     all_language_datasets_streamed = {}
 
     for lang_config_name in processed_languages_to_load:
@@ -214,7 +206,7 @@ def create_pure_code_points_iterable_datasets() -> IterableDataset:
     return interleaved_dataset
 
 
-def create_streaming_dataloader(vocab2idx: dict) -> DataLoader:
+def create_streaming_dataloader(vocab2idx: dict, epoch=1) -> DataLoader:
 
     logger.info(f"Fetching available configurations for {DATASET_NAME}...")
     try:
@@ -364,7 +356,7 @@ def create_streaming_dataloader(vocab2idx: dict) -> DataLoader:
     interleaved_dataset = paired_dataset
 
     logger.info("Shuffling dataset...")
-    interleaved_dataset = interleaved_dataset.shuffle(seed=42)
+    interleaved_dataset = interleaved_dataset.shuffle(seed=42 * epoch)
     logger.info("Dataset shuffled successfully.")
 
 
