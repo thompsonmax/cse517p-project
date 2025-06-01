@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from wikimedia_languages import ALL_LANGUAGES
 import numpy as np
+from scipy.stats import percentileofscore
 
 #total_rows = 61614907
 languages_used_as_list = ['en', 'de', 'fr', 'es', 'ru', 'ja', 'it', 'zh', 'pt', 'ar', 'pl', 'nl']
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     plt.xscale('log')
     plt.title('Language Distribution in Entire Dataset')
     plt.grid(axis='y', alpha=0.75)
-    plt.show()
+    #plt.show()
 
     print('=== graph of top n languages ===')
     n = 25
@@ -73,7 +74,7 @@ if __name__ == "__main__":
     plt.ylabel('Samples')
     plt.yscale('log')
     plt.title(f'Top {n} Languages in Entire Dataset')
-    plt.show()
+    #plt.show()
 
     languages_used_dict = [ l for l in all_languages if l['language'] in languages_used_as_list]
 
@@ -88,7 +89,7 @@ if __name__ == "__main__":
     plt.ylabel('Samples')
     plt.yscale('log')
     plt.title(f'Distribution of Fetched Languages')
-    plt.show()
+    #plt.show()
 
     print('=== summary of entire dataset ===')
 
@@ -127,6 +128,10 @@ if __name__ == "__main__":
     print('# top 5 languages')
     print(languages[:5])
     print()
+
+    print('=== bias of the fetched languages? ===')
+    for i, lang in enumerate(languages_used):
+        print(lang, rows_used[i], percentileofscore(rows, rows_used[i]))
 
     print('=== summary of used dataset ===')
 
@@ -179,4 +184,4 @@ if __name__ == "__main__":
     table.scale(1.2, 1.5)
     ax.axis('off')
     plt.title('Wikimedia Statistics')
-    plt.show()
+    #plt.show()
