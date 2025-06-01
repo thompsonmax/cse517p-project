@@ -11,7 +11,9 @@ languages_used_as_list = ['en', 'de', 'fr', 'es', 'ru', 'ja', 'it', 'zh', 'pt', 
 
 def get_languages():
     if len(ALL_LANGUAGES) != 0:
-        return ALL_LANGUAGES
+        language_lengths = ALL_LANGUAGES
+        language_lengths = sorted(language_lengths, key=lambda x: x['rows'], reverse=True)
+        return language_lengths
 
     result = subprocess.run(['curl', 'https://datasets-server.huggingface.co/splits?dataset=wikimedia%2Fwikipedia'], capture_output=True, text=True)
     response = json.loads(result.stdout)
@@ -52,7 +54,7 @@ if __name__ == "__main__":
     total_rows = sum(rows)
 
     print('=== graph of language distribution ===')
-    bins = np.logspace(0, np.log10(np.max(rows) + 10), num=20)
+    bins = np.logspace(1, np.log10(np.max(rows) + 10), num=20)
     plt.figure(figsize=(10, 6)) 
     plt.hist(rows, bins=bins, edgecolor='black')
     plt.xlabel('Number of Samples per Language')
@@ -67,7 +69,7 @@ if __name__ == "__main__":
     n = 25
     plt.bar(languages[:n], rows[:n])
     plt.xlabel('Languages')
-    plt.xticks(languages, languages, rotation=45)
+    plt.xticks(languages[:n], languages[:n], rotation=45)
     plt.ylabel('Samples')
     plt.yscale('log')
     plt.title(f'Top {n} Languages in Entire Dataset')
