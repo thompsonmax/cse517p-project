@@ -20,6 +20,8 @@ import streaming_dataloader
 # UNICODE_BMP_MAX_CODE_POINT = 65535 # U+FFFF, spans Basic Multilingual Plane
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 print("Using device: " + DEVICE)
+if DEVICE == "cuda":
+    torch.set_float32_matmul_precision('high')
 
 class MyModel:
     """
