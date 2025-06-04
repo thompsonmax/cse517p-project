@@ -187,7 +187,7 @@ def train_transformer(
     print(f"Number of parameters in the model: {num_params}")
 
     # Create dataloader iterator
-    dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+    dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx, epoch=1)
     dataloader = iter(dataloader)
 
     loss_fn = nn.CrossEntropyLoss()
@@ -195,10 +195,12 @@ def train_transformer(
     lr = hyperparams.LR
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 1.0, gamma=0.95)
-    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=1, gamma=hyperparams.LR_DECAY_PER_EPOCH)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingWarmRestarts(optimizer, T_0=hyperparams.LR_T0, eta_min=hyperparams.LR_MIN)
 
     train_losses = [] # List to store the training losses
     dev_metrics = [] # List to store the validation metrics
+
+    verbose_results = []
 
     print("Running training...")
     for epoch in range(n_epochs): # Iterate over the epochs
@@ -213,7 +215,7 @@ def train_transformer(
             try:
                 batch = next(dataloader)
             except StopIteration:
-                dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx)
+                dataloader = streaming_dataloader.create_streaming_dataloader(vocab2idx, epoch=epoch+1)
                 dataloader = iter(dataloader)
                 batch = next(dataloader)
             j += 1
@@ -266,8 +268,6 @@ def train_transformer(
         train_epoch_loss /= epoch_steps
         train_losses.append(train_epoch_loss)
 
-        scheduler.step()
-
         # Write the model to disk every epoch
         model_path = os.path.join(work_dir, f"model_epoch_{epoch + 1}.pt")
         torch.save(model.state_dict(), model_path)
@@ -276,6 +276,14 @@ def train_transformer(
         dev_metrics.append(eval_metrics)
 
         if verbose:
-            print("Epoch: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"]))
+            verbose_result = "Epoch: %.d, Learning Rate: %f, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"], scheduler.get_last_lr()[0])
+            print(verbose_result)
+            verbose_results.append(verbose_result)
+            print("All results so far:")
+            for result in verbose_results:
+                print(result)
             #print("Epoch: %.d, Train Loss: %.4f" % (epoch + 1, train_epoch_loss))
+        
+        scheduler.step()
+
     return train_losses, dev_metrics[-1]
