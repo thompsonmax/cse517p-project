@@ -105,6 +105,7 @@ DESIRED_TOP_LANGUAGES = [
         # 'ast', # Asturian
     ]
 TARGET_LANG_COUNT = len(DESIRED_TOP_LANGUAGES)
+random.seed(hyperparams.RANDOM_SEED)
 # DATASET_CONFIG = '20231101.ab'
 
 logging.basicConfig(level=logging.INFO)

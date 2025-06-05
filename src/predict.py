@@ -54,7 +54,7 @@ def predict_transformer(
         for X_batch in embedding_dataloader: # Iterate over the batches of the validation data
             
             indices = find_first_zero_or_last_index(X_batch)
-            print(indices)
+            # print(indices)
             # Perform a forward pass through the network and compute loss
             #X_batch = X_batch.to(device) # Transfer the data to device
             y_batch_preds = model(X_batch, device=device).squeeze(-1)
