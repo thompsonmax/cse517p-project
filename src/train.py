@@ -276,7 +276,7 @@ def train_transformer(
         dev_metrics.append(eval_metrics)
 
         if verbose:
-            verbose_result = "Epoch: %.d, Learning Rate: %f, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f" % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"], scheduler.get_last_lr()[0])
+            verbose_result = "Epoch: %.d, Train Loss: %.4f, Dev Loss: %.4f, Dev Accuracy: %.4f, Dev Precision: %.4f, Dev Recall: %.4f, Dev F1: %.4f, Learning Rate: %f," % (epoch + 1, train_epoch_loss, eval_metrics["loss"], eval_metrics["accuracy"], eval_metrics["precision"], eval_metrics["recall"], eval_metrics["f1"], scheduler.get_last_lr()[0])
             print(verbose_result)
             verbose_results.append(verbose_result)
             print("All results so far:")
