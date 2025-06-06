@@ -18,6 +18,7 @@ def predict_transformer(
     batch_size: int = 32,
     device: str = "cpu",
     verbose=False,
+    filter_special_chars=False,
     **kwargs,
 ):
 
@@ -54,6 +55,7 @@ def predict_transformer(
         for X_batch in embedding_dataloader: # Iterate over the batches of the validation data
             
             indices = find_first_zero_or_last_index(X_batch)
+            # print(f'indices: {indices}')
             # print(indices)
             # Perform a forward pass through the network and compute loss
             #X_batch = X_batch.to(device) # Transfer the data to device
@@ -77,9 +79,11 @@ def predict_transformer(
             y_batch_preds = torch.softmax(logits_last, dim=-1)
 
             indices_to_filter = [ hyperparams.PADDING_CHAR_IDX, hyperparams.UNK_CHAR_IDX ]
-            indices_to_validate = [' ', '\n']
+            chars_to_filter = [' ', '\n']
+            if filter_special_chars:
+                chars_to_filter = ['\n', '\t', '\r', '!', '"', '#', '$', '%', '&', "'", '(', ')', '*', '+', ',', '-', '.', '/', ':', ';', '<', '=', '>', '?', '@', '[', '\\', ']', '^', '_', '`', '{', '|', '}', '~']
 
-            for char_to_check in indices_to_validate:
+            for char_to_check in chars_to_filter:
                 idx = model.char_to_idx.get(ord(char_to_check), -1)
                 if idx != -1:
                     indices_to_filter.append(idx)
@@ -95,13 +99,17 @@ def predict_transformer(
 
             predictions_per_batch = []
             pred_top_3_batch = torch.topk(y_batch_preds, 3).indices
-            for batch in pred_top_3_batch:
+            for i, batch in enumerate(pred_top_3_batch):
                 predicted_chars = []
                 for idx in batch:
                     code_point = vocab[idx.item()]
                     # print(chr(code_point))
                     predicted_chars.append(chr(code_point))
                 predicted_chars = ''.join(predicted_chars)
+                if verbose:
+                    input_chars = ''.join([chr(vocab[c]) for c in X_batch[i] if c != hyperparams.PADDING_CHAR_IDX])
+                    print(f'input chars: {input_chars}')
+                    print(f'predicted chars: {predicted_chars}')
                 predictions_per_batch.append(predicted_chars)
             preds.extend(predictions_per_batch)
 

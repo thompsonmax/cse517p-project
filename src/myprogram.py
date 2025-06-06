@@ -123,7 +123,7 @@ class MyModel:
         print(final_dev_metrics)
         
 
-    def run_pred(self, data, verbose=False):
+    def run_pred(self, data, verbose=False, filter_special_chars=False):
         # your code here
         # test_cache_path = 
         if self.char_vocab is None:
@@ -137,6 +137,7 @@ class MyModel:
             vocab=self.char_vocab,
             device=DEVICE,
             verbose=verbose,
+            filter_special_chars=filter_special_chars,
         )
         return preds
 
