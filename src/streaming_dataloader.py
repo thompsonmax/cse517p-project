@@ -27,8 +27,6 @@ DESIRED_TOP_LANGUAGES = [
         'ar',  # Arabic
         'pl',  # Polish
         'nl',  # Dutch
-        # 'ceb', # Cebuano (often large by article count due to bots, content quality varies)
-        # Uncomment to get better language coverage
         'sv',  # Swedish
         'hin', # Hindi
         'tr',  # Turkish
@@ -47,6 +45,16 @@ DESIRED_TOP_LANGUAGES = [
         'el',  # Greek
         'th',  # Thai
         'fa',  # Persian
+        'sw',  # Swahili
+        'tl',  # Tagalog
+        'bn',  # Bengali
+        'pa',  # Punjabi
+        'gu',  # Gujarati
+        'ta',  # Tamil
+        'te',  # Telugu
+        'ur',  # Urdu
+        # 'ceb', # Cebuano (often large by article count due to bots, content quality varies)
+        # Uncomment to get better language coverage
         # 'sk',  # Slovak
         # 'lt',  # Lithuanian
         # 'sl',  # Slovenian
@@ -63,19 +71,11 @@ DESIRED_TOP_LANGUAGES = [
         # 'is',  # Icelandic
         # 'mt',  # Maltese
         # 'af',  # Afrikaans
-        'sw',  # Swahili
-        'tl',  # Tagalog
-        'bn',  # Bengali
-        'pa',  # Punjabi
-        'gu',  # Gujarati
-        'ta',  # Tamil
-        'te',  # Telugu
         # 'kn',  # Kannada
         # 'ml',  # Malayalam
         # 'mr',  # Marathi
         # 'or',  # Odia
         # 'si',  # Sinhala
-        'ur',  # Urdu
         # 'my',  # Burmese
         # 'km',  # Khmer
         # 'lo',  # Lao
