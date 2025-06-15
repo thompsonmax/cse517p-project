@@ -40,6 +40,7 @@ def predict_transformer(
 
     # Create a DataLoader for the input data
     #dataset = TensorDataset(data)
+    data = data.to(device)
     embedding_dataloader = DataLoader(data, batch_size=batch_size, shuffle=False)
     # embedding_dataloader = create_dataloader(embeddings, batch_size=batch_size, shuffle=False) # Note that we don't shuffle the data for evaluation.
 
