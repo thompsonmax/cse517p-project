@@ -131,7 +131,7 @@ def find_first_zero_or_last_index(tensor: torch.Tensor) -> torch.Tensor:
         raise ValueError("Input tensor must be 2-dimensional.")
 
     num_rows, num_cols = tensor.shape
-    results = torch.zeros(num_rows, dtype=torch.long)
+    results = torch.zeros(num_rows, dtype=torch.long, device=tensor.device)
 
     for i in range(num_rows):
         row = tensor[i]
